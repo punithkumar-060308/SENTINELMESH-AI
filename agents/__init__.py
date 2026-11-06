@@ -11,7 +11,12 @@ from agents.observer import ObserverAgent
 from agents.investigator import InvestigatorAgent
 from agents.repair import RepairAgent
 from agents.verifier import VerifierAgent
-from agents.orchestrator import SentinelMeshOrchestrator
+from agents.orchestrator import (
+    SentinelMeshOrchestrator,
+    langgraph_orchestrator,
+    build_sentinelmesh_graph,
+    LangGraphOrchestratorService,
+)
 from agents.common.schemas import (
     WorkflowState,
     ObserverInput,
@@ -31,6 +36,9 @@ __all__ = [
     "RepairAgent",
     "VerifierAgent",
     "SentinelMeshOrchestrator",
+    "langgraph_orchestrator",
+    "build_sentinelmesh_graph",
+    "LangGraphOrchestratorService",
     "WorkflowState",
     "ObserverInput",
     "ObserverOutput",

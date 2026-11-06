@@ -5,7 +5,11 @@ export default function Header({
   onSearch,
   searchQuery = '',
   onOpenMobileMenu,
-  onOpenAuth
+  onOpenAuth,
+  connectionStatus = 'connected',
+  isDemoMode = false,
+  onRetryConnection,
+  onToggleDemoMode
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -26,13 +30,48 @@ export default function Header({
           <span className="font-extrabold text-sm text-[#17233B] tracking-tight hidden sm:inline">
             SentinelMesh AI
           </span>
-          <span className="hidden md:inline px-3 py-0.5 rounded-full text-[11px] font-bold bg-powder-blue/40 text-[#17233B] border border-powder-blue/60 shadow-xs">
-            Demo Mesh
-          </span>
-          <span className="hidden xl:flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-            All Systems Normal
-          </span>
+
+          {/* Explicit Demo Data vs Live Mesh badge */}
+          {isDemoMode ? (
+            <span
+              onClick={onToggleDemoMode}
+              className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs cursor-pointer hover:bg-amber-200 transition-colors"
+              title="Explicit Demo Data enabled. Click to switch to Live Backend."
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></span>
+              DEMO DATA
+            </span>
+          ) : (
+            <span className="hidden md:inline px-3 py-0.5 rounded-full text-[11px] font-bold bg-powder-blue/40 text-[#17233B] border border-powder-blue/60 shadow-xs">
+              Live Mesh
+            </span>
+          )}
+
+          {/* Connection status indicator */}
+          {connectionStatus === 'connected' && (
+            <span className="hidden xl:flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              Backend Connected
+            </span>
+          )}
+
+          {connectionStatus === 'checking' && (
+            <span className="hidden xl:flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-slate-400 animate-ping"></span>
+              Checking Backend...
+            </span>
+          )}
+
+          {connectionStatus === 'disconnected' && !isDemoMode && (
+            <button
+              onClick={onRetryConnection}
+              className="hidden xl:flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-300 shadow-xs hover:bg-rose-200 transition-colors"
+              title="Click to retry connection"
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-600"></span>
+              Backend Disconnected (Retry)
+            </button>
+          )}
         </div>
       </div>
 

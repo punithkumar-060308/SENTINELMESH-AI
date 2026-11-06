@@ -3,7 +3,7 @@ import SeverityBadge from './common/SeverityBadge';
 import StatusBadge from './common/StatusBadge';
 import { EmptyState, DemoBadge } from './common/UIStates';
 
-export default function IncidentsConsole({ incidents, onSelectIncident, onSimulateClick }) {
+export default function IncidentsConsole({ incidents, onSelectIncident, onSimulateClick, isDemoMode = false }) {
   const [search, setSearch] = useState('');
   const [severityFilter, setSeverityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -110,7 +110,14 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                 <span className="w-2 h-2 rounded-full bg-sunset-peach animate-ping"></span>
                 Kafka ingress active
               </span>
-              <DemoBadge />
+              {isDemoMode ? (
+                <DemoBadge label="DEMO DATA" />
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-mono text-[10px] font-bold border border-emerald-300 shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  Live Telemetry
+                </span>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-deep-navy tracking-tight">
               Incident Management Console

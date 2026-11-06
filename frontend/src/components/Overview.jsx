@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import StatusBadge from './common/StatusBadge';
 import SeverityBadge from './common/SeverityBadge';
-import { DemoBadge } from './common/UIStates';
+import { DemoBadge, EmptyState } from './common/UIStates';
 
-export default function Overview({ incidents, onSelectIncident, onSimulateClick, onNavigateTab }) {
+export default function Overview({ incidents = [], onSelectIncident, onSimulateClick, onNavigateTab, isDemoMode = false, fleetAgents = [] }) {
   const [lastRefreshed, setLastRefreshed] = useState('12s ago');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -15,10 +15,11 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
     }, 600);
   };
 
-  const activeIncidents = incidents.filter(i => i.status !== 'recovered' && i.status !== 'rejected');
-  const investigatingCount = incidents.filter(i => i.status === 'investigating' || i.status === 'detected').length;
-  const pendingCount = incidents.filter(i => i.status === 'awaiting_approval' || i.status === 'Patch Proposed').length;
-  const recoveredCount = incidents.filter(i => i.status === 'recovered').length;
+  const safeIncidents = Array.isArray(incidents) ? incidents : [];
+  const activeIncidents = safeIncidents.filter(i => i.status !== 'recovered' && i.status !== 'rejected');
+  const investigatingCount = safeIncidents.filter(i => i.status === 'investigating' || i.status === 'detected').length;
+  const pendingCount = safeIncidents.filter(i => i.status === 'awaiting_approval' || i.status === 'Patch Proposed' || i.status === 'patch_pending_approval').length;
+  const recoveredCount = safeIncidents.filter(i => i.status === 'recovered').length;
 
   return (
     <div className="flex flex-col w-full gap-8">
@@ -38,7 +39,14 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
               <span className="text-xs font-mono font-semibold text-[#475569]">
                 US-East-1 · Swarm v4.8
               </span>
-              <DemoBadge />
+              {isDemoMode ? (
+                <DemoBadge label="DEMO DATA" />
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-mono text-[10px] font-bold border border-emerald-300 shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                  Live Telemetry
+                </span>
+              )}
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#17233B] tracking-tight leading-tight">
@@ -194,7 +202,7 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
                 Verified Recoveries
               </span>
               <span className="text-3xl font-black text-[#17233B] mt-1 block">
-                {recoveredCount + 18}
+                {recoveredCount}
               </span>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center justify-center shadow-xs">
@@ -226,92 +234,136 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
           {/* Agent 1: Observer */}
-          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
-                  <span className="material-symbols-outlined text-[20px]">visibility</span>
+          {(() => {
+            const agent = fleetAgents.find(a => a.id === 'observer' || a.name?.toLowerCase().includes('observer'));
+            const st = (agent?.status || 'active').toLowerCase();
+            const badgeClass =
+              st === 'failed' ? 'bg-rose-100 text-rose-900 border-rose-300' :
+              st === 'running' ? 'bg-powder-blue/40 text-[#17233B] border-powder-blue/60 animate-pulse' :
+              st === 'idle' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+              'bg-emerald-100 text-emerald-900 border-emerald-300';
+            return (
+              <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
+                      <span className="material-symbols-outlined text-[20px]">visibility</span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass} uppercase`}>
+                      {agent?.status || 'LIVE'}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-[#17233B]">{agent?.name || 'Observer Agent'}</h3>
+                  <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed line-clamp-2">
+                    {agent?.last_activity || agent?.description || 'Detects anomalies and aggregates distributed trace metrics in real-time.'}
+                  </p>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                  LIVE
-                </span>
+                <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+                  <span>{agent?.status_text || 'Telemetry: 1.4k ev/s'}</span>
+                  <span>{agent?.evidence_count !== undefined ? `${agent.evidence_count} evidence` : 'Live'}</span>
+                </div>
               </div>
-              <h3 className="font-bold text-sm text-[#17233B]">Observer Agent</h3>
-              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
-                Detects anomalies, tracks Prometheus metric drifts, and aggregates distributed traces.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
-              <span>Telemetry: 1.4k ev/s</span>
-              <span>2s ago</span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Agent 2: Investigator */}
-          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-sunset-peach/40 text-[#17233B] flex items-center justify-center border border-sunset-peach/60 shadow-xs">
-                  <span className="material-symbols-outlined text-[20px]">manage_search</span>
+          {(() => {
+            const agent = fleetAgents.find(a => a.id === 'investigator' || a.name?.toLowerCase().includes('investigator'));
+            const st = (agent?.status || 'evaluating').toLowerCase();
+            const badgeClass =
+              st === 'failed' ? 'bg-rose-100 text-rose-900 border-rose-300' :
+              st === 'running' ? 'bg-sunset-peach/40 text-[#17233B] border-sunset-peach/60 animate-pulse' :
+              st === 'idle' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+              'bg-sunset-peach/30 text-[#17233B] border-sunset-peach/50';
+            return (
+              <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-sunset-peach/40 text-[#17233B] flex items-center justify-center border border-sunset-peach/60 shadow-xs">
+                      <span className="material-symbols-outlined text-[20px]">manage_search</span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass} uppercase`}>
+                      {agent?.status || 'ACTIVE'}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-[#17233B]">{agent?.name || 'Investigator Agent'}</h3>
+                  <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed line-clamp-2">
+                    {agent?.root_cause || agent?.last_activity || agent?.description || 'Analyzes evidence, correlates commits with git blame, and constructs causal failure trees.'}
+                  </p>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sunset-peach/30 text-[#17233B] border border-sunset-peach/50">
-                  ACTIVE
-                </span>
+                <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+                  <span>{agent?.status_text || 'Root Cause Isolated'}</span>
+                  <span>{agent?.confidence ? `${agent.confidence}% conf` : 'AST Diffs'}</span>
+                </div>
               </div>
-              <h3 className="font-bold text-sm text-[#17233B]">Investigator Agent</h3>
-              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
-                Analyzes evidence, correlates commits with git blame, and constructs causal failure trees.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
-              <span>Gemini 1.5 Pro</span>
-              <span>12s ago</span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Agent 3: Repair */}
-          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
-                  <span className="material-symbols-outlined text-[20px]">healing</span>
+          {(() => {
+            const agent = fleetAgents.find(a => a.id === 'repair' || a.name?.toLowerCase().includes('repair'));
+            const st = (agent?.status || 'active').toLowerCase();
+            const badgeClass =
+              st === 'failed' ? 'bg-rose-100 text-rose-900 border-rose-300' :
+              st === 'running' ? 'bg-powder-blue/40 text-[#17233B] border-powder-blue/60 animate-pulse' :
+              st === 'idle' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+              'bg-powder-blue/40 text-[#17233B] border-powder-blue/60';
+            return (
+              <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
+                      <span className="material-symbols-outlined text-[20px]">healing</span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass} uppercase`}>
+                      {agent?.status || 'READY'}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-[#17233B]">{agent?.name || 'Repair Agent'}</h3>
+                  <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed line-clamp-2">
+                    {agent?.last_activity || agent?.description || 'Synthesizes minimal defensive AST patches adhering strictly to language invariants.'}
+                  </p>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-powder-blue/40 text-[#17233B] border border-powder-blue/60">
-                  READY
-                </span>
+                <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+                  <span>{agent?.status_text || 'Diff Engine v2'}</span>
+                  <span>{agent?.proposed_patch_id || 'Patch Ready'}</span>
+                </div>
               </div>
-              <h3 className="font-bold text-sm text-[#17233B]">Repair Agent</h3>
-              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
-                Synthesizes minimal defensive AST patches adhering strictly to language invariants.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
-              <span>Diff Engine v2</span>
-              <span>1m ago</span>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Agent 4: Verifier */}
-          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-2xl bg-soft-lavender text-[#17233B] flex items-center justify-center border border-[#CBD5E1] shadow-xs">
-                  <span className="material-symbols-outlined text-[20px]">science</span>
+          {(() => {
+            const agent = fleetAgents.find(a => a.id === 'verifier' || a.name?.toLowerCase().includes('verifier'));
+            const st = (agent?.status || 'completed').toLowerCase();
+            const badgeClass =
+              st === 'failed' ? 'bg-rose-100 text-rose-900 border-rose-300' :
+              st === 'running' ? 'bg-emerald-100 text-emerald-900 border-emerald-300 animate-pulse' :
+              st === 'idle' ? 'bg-slate-100 text-slate-700 border-slate-300' :
+              'bg-emerald-100 text-emerald-900 border-emerald-300';
+            return (
+              <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 rounded-2xl bg-soft-lavender text-[#17233B] flex items-center justify-center border border-[#CBD5E1] shadow-xs">
+                      <span className="material-symbols-outlined text-[20px]">science</span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass} uppercase`}>
+                      {agent?.status || 'READY'}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-[#17233B]">{agent?.name || 'Verifier Agent'}</h3>
+                  <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed line-clamp-2">
+                    {agent?.verification_result || agent?.last_activity || agent?.description || 'Runs independent regression and synthetic edge suites inside isolated testcontainers.'}
+                  </p>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
-                  READY
-                </span>
+                <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+                  <span>{agent?.status_text || 'Docker Rootless'}</span>
+                  <span>{agent?.tests_passed !== undefined ? `${agent.tests_passed} passed` : '0 Regress'}</span>
+                </div>
               </div>
-              <h3 className="font-bold text-sm text-[#17233B]">Verifier Agent</h3>
-              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
-                Runs independent regression and synthetic edge suites inside isolated testcontainers.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
-              <span>Docker Rootless</span>
-              <span>3m ago</span>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -402,33 +454,41 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
           </div>
 
           <div className="space-y-3">
-            {incidents.slice(0, 4).map((inc) => (
-              <div
-                key={inc.id}
-                onClick={() => onSelectIncident(inc)}
-                className="p-4 rounded-3xl glass-panel glass-panel-hover cursor-pointer flex flex-col gap-2 group border border-white"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs text-[#17233B]">{inc.id}</span>
-                    <SeverityBadge severity={inc.severity} short />
-                  </div>
-                  <StatusBadge status={inc.status} />
-                </div>
-
-                <div className="text-xs font-bold text-[#17233B] line-clamp-1 group-hover:text-[#17233B]/80">
-                  {inc.title}
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-[#334155] font-semibold pt-2 border-t border-[#E2E8F0]">
-                  <span className="truncate max-w-[160px]">{inc.application}</span>
-                  <span className="flex items-center gap-1 font-sans font-bold text-[#17233B] group-hover:translate-x-0.5 transition-transform">
-                    <span>Investigate</span>
-                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                  </span>
-                </div>
+            {safeIncidents.length === 0 ? (
+              <div className="p-6 rounded-3xl glass-panel text-center border border-white">
+                <span className="material-symbols-outlined text-3xl text-emerald-600 mb-1">verified</span>
+                <p className="text-xs font-bold text-[#17233B]">Zero Active Incidents</p>
+                <p className="text-[11px] text-[#475569] mt-0.5">All monitored microservices are healthy.</p>
               </div>
-            ))}
+            ) : (
+              safeIncidents.slice(0, 4).map((inc) => (
+                <div
+                  key={inc.id}
+                  onClick={() => onSelectIncident(inc)}
+                  className="p-4 rounded-3xl glass-panel glass-panel-hover cursor-pointer flex flex-col gap-2 group border border-white"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-[#17233B]">{inc.id}</span>
+                      <SeverityBadge severity={inc.severity} short />
+                    </div>
+                    <StatusBadge status={inc.status} />
+                  </div>
+
+                  <div className="text-xs font-bold text-[#17233B] line-clamp-1 group-hover:text-[#17233B]/80">
+                    {inc.title}
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[#334155] font-semibold pt-2 border-t border-[#E2E8F0]">
+                    <span className="truncate max-w-[160px]">{inc.application}</span>
+                    <span className="flex items-center gap-1 font-sans font-bold text-[#17233B] group-hover:translate-x-0.5 transition-transform">
+                      <span>Investigate</span>
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

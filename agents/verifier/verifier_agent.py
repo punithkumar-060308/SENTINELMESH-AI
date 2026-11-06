@@ -30,7 +30,7 @@ class VerifierAgent:
         """
         # 1. Enforce Human Gate sign-off
         decision = data.human_approval.get("decision") if data.human_approval else None
-        if decision != "approved":
+        if decision not in ["approved", "approve"]:
             raise VerificationPermissionError(
                 f"Verifier Agent rejected: Patch '{data.patch_id}' lacks human approval. Current decision: '{decision}'."
             )

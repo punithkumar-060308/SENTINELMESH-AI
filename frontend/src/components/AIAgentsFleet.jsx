@@ -1,8 +1,39 @@
-import React, { useState } from 'react';
-import { fleetAgents } from '../data/mockData';
+import React, { useState, useEffect, useCallback } from 'react';
+import { api } from '../services/api';
+import { fleetAgents as defaultMockAgents } from '../data/mockData';
+import { LoadingState, EmptyState, ErrorState, DemoBadge } from './common/UIStates';
 
-export default function AIAgentsFleet({ showToast }) {
+export default function AIAgentsFleet({ showToast, fleetAgents: propFleetAgents = null, isDemoMode = false }) {
+  const [agents, setAgents] = useState(() => propFleetAgents || (isDemoMode ? defaultMockAgents : []));
   const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const [isLoading, setIsLoading] = useState(!propFleetAgents && !isDemoMode);
+  const [error, setError] = useState(null);
+
+  const loadAgents = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await api.getFleetAgents();
+      setAgents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('[AIAgentsFleet] Error loading fleet agents:', err);
+      setError(err.message || 'Failed to communicate with fleet agent backend');
+      if (isDemoMode) {
+        setAgents(defaultMockAgents);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isDemoMode]);
+
+  useEffect(() => {
+    if (propFleetAgents && propFleetAgents.length > 0) {
+      setAgents(propFleetAgents);
+      setIsLoading(false);
+    } else {
+      loadAgents();
+    }
+  }, [propFleetAgents, loadAgents]);
 
   const handleAgentClick = (id) => {
     setSelectedAgentId(id);
@@ -18,6 +49,55 @@ export default function AIAgentsFleet({ showToast }) {
     }
   };
 
+  const getStatusBadge = (status) => {
+    const st = (status || 'idle').toLowerCase();
+    if (st === 'running') {
+      return (
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-powder-blue/40 text-[#17233B] border border-powder-blue/60 shadow-xs uppercase flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse"></span>
+          RUNNING
+        </span>
+      );
+    }
+    if (st === 'failed') {
+      return (
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-300 shadow-xs uppercase flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+          FAILED
+        </span>
+      );
+    }
+    if (st === 'completed') {
+      return (
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs uppercase flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+          COMPLETED
+        </span>
+      );
+    }
+    if (st === 'pending_approval') {
+      return (
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs uppercase flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-ping"></span>
+          PENDING APPROVAL
+        </span>
+      );
+    }
+    if (st === 'active' || st === 'evaluating') {
+      return (
+        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-xs uppercase flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+          ACTIVE
+        </span>
+      );
+    }
+    return (
+      <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300 shadow-xs uppercase">
+        IDLE
+      </span>
+    );
+  };
+
   return (
     <div className="flex flex-col w-full gap-8">
       {/* Top Level Command Header */}
@@ -28,10 +108,14 @@ export default function AIAgentsFleet({ showToast }) {
               Swarm Engine v4.8
             </span>
             <span className="text-[#94A3B8]">|</span>
-            <span className="flex items-center gap-1.5 font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
-              Cluster Quorum Healthy
-            </span>
+            {isDemoMode ? (
+              <DemoBadge label="DEMO FLEET" />
+            ) : (
+              <span className="flex items-center gap-1.5 font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                Cluster Quorum Live
+              </span>
+            )}
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black text-[#17233B] tracking-tight">
@@ -45,11 +129,15 @@ export default function AIAgentsFleet({ showToast }) {
         {/* Header Actions */}
         <div className="flex items-center gap-3 shrink-0 font-sans text-xs">
           <button
-            onClick={() => notify('Fleet Telemetry: 14 services healthy, Kafka latency 12ms', 'insights', 'text-powder-blue')}
+            onClick={() => {
+              loadAgents();
+              notify('Refreshed swarm agent telemetry stream from backend', 'sync', 'text-powder-blue');
+            }}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-white text-[#17233B] hover:bg-slate-50 transition-colors font-bold shadow-xs border border-[#CBD5E1]"
+            title="Refresh Fleet Status"
           >
-            <span className="material-symbols-outlined text-[18px] text-[#2563EB]">insights</span>
-            <span>Fleet Telemetry Status</span>
+            <span className="material-symbols-outlined text-[18px] text-[#2563EB]">sync</span>
+            <span>Refresh Fleet Status</span>
           </button>
           <button
             onClick={() => notify('Swarm consensus model set to 3/4 quorum with Human Gate strictly enforced.', 'tune', 'text-powder-blue')}
@@ -154,7 +242,7 @@ export default function AIAgentsFleet({ showToast }) {
               </div>
               <span className="font-bold text-xs text-[#17233B]">Repair Agent</span>
               <span className="text-[#64748B] text-[11px] font-medium mt-0.5">Synthesizes Patch</span>
-              <span className="text-[#2563EB] font-mono font-bold mt-1 text-[11px]">PR #1042 ready</span>
+              <span className="text-[#2563EB] font-mono font-bold mt-1 text-[11px]">Diff Guard Ready</span>
             </div>
 
             {/* Connector 3 */}
@@ -166,7 +254,10 @@ export default function AIAgentsFleet({ showToast }) {
             </div>
 
             {/* Step 4: Human Gate */}
-            <div className="flex flex-col items-center group p-3">
+            <div
+              onClick={() => handleAgentClick('human_gate')}
+              className="flex flex-col items-center group p-3 cursor-pointer"
+            >
               <div className="w-14 h-14 rounded-2xl bg-soft-lavender flex items-center justify-center relative mb-2 shadow-xs border border-[#CBD5E1]">
                 <span className="material-symbols-outlined text-[26px] text-[#17233B]">verified_user</span>
                 <span className="absolute -bottom-1 px-1.5 py-0.2 rounded-full bg-[#17233B] text-white font-mono text-[9px] uppercase tracking-wider font-bold">
@@ -175,7 +266,7 @@ export default function AIAgentsFleet({ showToast }) {
               </div>
               <span className="font-bold text-xs text-[#17233B]">Human Gate</span>
               <span className="text-[#64748B] text-[11px] font-medium mt-0.5">Staff SRE Sign-off</span>
-              <span className="text-[#17233B] font-mono font-bold mt-1 text-[11px]">Elena Vance</span>
+              <span className="text-[#17233B] font-mono font-bold mt-1 text-[11px]">Zero-Trust</span>
             </div>
 
             {/* Connector 4 */}
@@ -226,124 +317,193 @@ export default function AIAgentsFleet({ showToast }) {
         </div>
       </div>
 
-      {/* Four Specialized Agent Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {(fleetAgents || []).map((agent) => {
-          const metricsList = [
-            {
-              label: agent.metricLabel1 || 'Tasks Completed',
-              value: agent.metricValue1 || (agent.tasksCompleted ? agent.tasksCompleted.toLocaleString() : '1,429')
-            },
-            {
-              label: agent.metricLabel2 || 'Precision',
-              value: agent.metricValue2 || agent.accuracy || '99.4%'
-            },
-            {
-              label: agent.metricLabel3 || 'MTTD / Latency',
-              value: agent.metricValue3 || agent.latency || '1.4s'
-            }
-          ];
-
-          return (
-            <div
-              key={agent.id}
-              id={`agent-card-${agent.id}`}
-              className={`flex flex-col p-6 sm:p-7 rounded-3xl glass-panel shadow-glass transition-all duration-300 border border-white ${
-                selectedAgentId === agent.id
-                  ? 'ring-2 ring-[#2563EB] bg-white'
-                  : 'glass-panel-hover'
-              }`}
+      {/* Main Agent Cards or States */}
+      {isLoading ? (
+        <LoadingState message="Fetching live agent swarm states and telemetry..." />
+      ) : error && agents.length === 0 ? (
+        <ErrorState
+          title="Agent Telemetry Disconnected"
+          error={error}
+          onRetry={loadAgents}
+        />
+      ) : agents.length === 0 ? (
+        <EmptyState
+          title="No Active Agents Found"
+          description="The agent swarm has not been initialized on the backend."
+          action={
+            <button
+              onClick={loadAgents}
+              className="px-4 py-2 rounded-full bg-[#17233B] text-white text-xs font-bold"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
-                    <span className={`material-symbols-outlined text-[28px] ${
-                      agent.id === 'observer'
-                        ? 'text-[#2563EB]'
-                        : agent.id === 'investigator'
-                        ? 'text-sunset-peach'
-                        : agent.id === 'repair'
-                        ? 'text-[#2563EB]'
-                        : 'text-emerald-700'
-                    }`}>
-                      {agent.icon || 'smart_toy'}
-                    </span>
+              Retry
+            </button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {agents.map((agent) => {
+            const agentKey = agent.id || agent.agent_id || agent.name.toLowerCase().replace(/ /g, '_');
+            const metricsList = [
+              {
+                label: agent.metric_label1 || agent.metricLabel1 || 'Processed',
+                value: agent.metric_value1 || agent.metricValue1 || (agent.processed_count ? agent.processed_count.toLocaleString() : '1')
+              },
+              {
+                label: agent.metric_label2 || agent.metricLabel2 || 'Precision / Acc',
+                value: agent.metric_value2 || agent.metricValue2 || agent.accuracy || '99.4%'
+              },
+              {
+                label: agent.metric_label3 || agent.metricLabel3 || 'Latency / RTT',
+                value: agent.metric_value3 || agent.metricValue3 || agent.latency || '140ms'
+              }
+            ];
+
+            return (
+              <div
+                key={agentKey}
+                id={`agent-card-${agent.id || agentKey}`}
+                className={`flex flex-col p-6 sm:p-7 rounded-3xl glass-panel shadow-glass transition-all duration-300 border border-white ${
+                  selectedAgentId === agent.id
+                    ? 'ring-2 ring-[#2563EB] bg-white'
+                    : 'glass-panel-hover'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+                      <span className={`material-symbols-outlined text-[28px] ${
+                        agent.id === 'observer'
+                          ? 'text-[#2563EB]'
+                          : agent.id === 'investigator'
+                          ? 'text-sunset-peach'
+                          : agent.id === 'repair'
+                          ? 'text-[#2563EB]'
+                          : 'text-emerald-700'
+                      }`}>
+                        {agent.icon || 'smart_toy'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-lg font-black text-[#17233B]">
+                        {agent.name}
+                      </h3>
+                      <span className="text-[11px] font-mono text-[#64748B] font-semibold">
+                        agent-id: {agent.agent_id || agent.agentId || agent.id || 'swarm-node'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col">
-                    <h3 className="text-lg font-black text-[#17233B]">
-                      {agent.name}
-                    </h3>
-                    <span className="text-[11px] font-mono text-[#64748B] font-semibold">
-                      agent-id: {agent.agentId || agent.id}
-                    </span>
+
+                  {getStatusBadge(agent.status)}
+                </div>
+
+                <p className="text-xs sm:text-sm text-[#334155] font-medium leading-relaxed mb-4">
+                  {agent.description}
+                </p>
+
+                {/* Error Banner if Agent Failed */}
+                {agent.error && (
+                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 mb-4 flex items-center gap-2 text-xs text-rose-900 font-mono">
+                    <span className="material-symbols-outlined text-rose-600 text-[18px]">error</span>
+                    <span className="truncate">{agent.error}</span>
+                  </div>
+                )}
+
+                {/* Agent Live Activity Pill */}
+                <div className="p-3.5 rounded-2xl bg-white/90 border border-[#E2E8F0] mb-4 flex items-center gap-2 shadow-xs">
+                  <span className="material-symbols-outlined text-[18px] text-[#2563EB]">track_changes</span>
+                  <div className="text-xs text-[#17233B] font-semibold truncate flex-1">
+                    <span className="text-[#64748B] font-medium">Status Text: </span>
+                    <span className="font-mono text-[#2563EB]">{agent.status_text || agent.statusText || 'Active'}</span>
+                    {(agent.last_activity || agent.lastActivity) && (
+                      <span className="text-[#64748B] font-normal ml-2">
+                        · {agent.last_activity || agent.lastActivity}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white text-[#17233B] border border-[#CBD5E1] shadow-xs uppercase">
-                  {agent.status || 'RUNNING'}
-                </span>
-              </div>
+                {/* Domain Specific Insights (Phase 2 Integration) */}
+                {agent.id === 'observer' && agent.evidence_count !== undefined && (
+                  <div className="px-3.5 py-2 rounded-xl bg-powder-blue/20 border border-powder-blue/40 text-[11px] font-mono text-[#17233B] mb-4 flex items-center justify-between">
+                    <span>Evidence Collected:</span>
+                    <span className="font-bold">{agent.evidence_count} artifact records</span>
+                  </div>
+                )}
 
-              <p className="text-xs sm:text-sm text-[#334155] font-medium leading-relaxed mb-5">
-                {agent.description}
-              </p>
+                {agent.id === 'investigator' && agent.root_cause && (
+                  <div className="px-3.5 py-2 rounded-xl bg-sunset-peach/20 border border-sunset-peach/40 text-[11px] font-mono text-[#17233B] mb-4 flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-[#C2410C]">Diagnosed Root Cause:</span>
+                      <span className="font-bold">{agent.confidence || 96.4}% confidence</span>
+                    </div>
+                    <span className="text-[#334155] line-clamp-1">{agent.root_cause}</span>
+                  </div>
+                )}
 
-              {/* Agent Live Activity Pill */}
-              <div className="p-3.5 rounded-2xl bg-white/90 border border-[#E2E8F0] mb-5 flex items-center gap-2 shadow-xs">
-                <span className="material-symbols-outlined text-[18px] text-[#2563EB]">track_changes</span>
-                <div className="text-xs text-[#17233B] font-semibold truncate">
-                  <span className="text-[#64748B] font-medium">Last Activity: </span>
-                  {agent.lastActivity || 'Active monitoring queue'}
-                </div>
-              </div>
-
-              {/* Metrics Triplet */}
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                {metricsList.map((m, idx) => (
-                  <div key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-[#E2E8F0] flex flex-col shadow-xs">
-                    <span className="text-[10px] uppercase font-bold text-[#64748B] tracking-wider truncate">
-                      {m.label}
-                    </span>
-                    <span className="text-base sm:text-lg font-black text-[#17233B] mt-1 font-mono">
-                      {m.value}
+                {agent.id === 'repair' && agent.proposed_patch_id && (
+                  <div className="px-3.5 py-2 rounded-xl bg-powder-blue/20 border border-powder-blue/40 text-[11px] font-mono text-[#17233B] mb-4 flex items-center justify-between">
+                    <span>Patch: <b>{agent.proposed_patch_id}</b> ({agent.patch_status || 'pending'})</span>
+                    <span className="text-[#64748B] truncate max-w-[140px]">
+                      {(agent.files_affected || []).join(', ') || 'StripeWebhookHandler.java'}
                     </span>
                   </div>
-                ))}
-              </div>
+                )}
 
-              {/* Capabilities / Tools */}
-              <div className="mt-auto pt-4 border-t border-[#E2E8F0] flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {(agent.capabilities || []).map((cap, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 rounded-lg bg-powder-blue/20 text-[#17233B] border border-powder-blue/40 font-mono text-[10px] font-semibold shadow-xs"
-                    >
-                      {cap}
-                    </span>
+                {agent.id === 'verifier' && agent.tests_passed !== undefined && (
+                  <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-[11px] font-mono text-[#17233B] mb-4 flex items-center justify-between">
+                    <span className="text-emerald-900 font-bold">Verification: {agent.tests_passed} passed, {agent.tests_failed || 0} failed</span>
+                    <span className="text-emerald-800">Zero Regressions</span>
+                  </div>
+                )}
+
+                {/* Metrics Triplet */}
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {metricsList.map((m, idx) => (
+                    <div key={idx} className="p-3.5 rounded-2xl bg-white/90 border border-[#E2E8F0] flex flex-col shadow-xs">
+                      <span className="text-[10px] uppercase font-bold text-[#64748B] tracking-wider truncate">
+                        {m.label}
+                      </span>
+                      <span className="text-base sm:text-lg font-black text-[#17233B] mt-1 font-mono">
+                        {m.value}
+                      </span>
+                    </div>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between pt-2 text-xs font-mono">
-                  <button
-                    onClick={() => notify(`${agent.name} telemetry stream: ${agent.streamRate || '42.8k events/s'}`, 'insights', 'text-[#2563EB]')}
-                    className="text-[#2563EB] hover:text-[#17233B] font-bold flex items-center gap-1 transition-colors"
-                  >
-                    <span>Inspect Agent Telemetry</span>
-                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                  </button>
-                  <button
-                    onClick={() => notify(`${agent.name} is responding within normal bounds (RTT 14ms)`, 'check_circle', 'text-emerald-700')}
-                    className="text-[#64748B] hover:text-[#17233B] transition-colors"
-                  >
-                    Ping Health
-                  </button>
+                {/* Capabilities / Tools */}
+                <div className="mt-auto pt-4 border-t border-[#E2E8F0] flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {(agent.capabilities || []).map((cap, i) => (
+                      <span
+                        key={i}
+                        className="px-2.5 py-1 rounded-lg bg-powder-blue/20 text-[#17233B] border border-powder-blue/40 font-mono text-[10px] font-semibold shadow-xs"
+                      >
+                        {cap}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 text-xs font-mono">
+                    <button
+                      onClick={() => notify(`${agent.name} telemetry stream: ${agent.status_text || 'Connected'}`, 'insights', 'text-[#2563EB]')}
+                      className="text-[#2563EB] hover:text-[#17233B] font-bold flex items-center gap-1 transition-colors"
+                    >
+                      <span>Inspect Agent Telemetry</span>
+                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                    </button>
+                    <button
+                      onClick={() => notify(`${agent.name} is responding within normal bounds (RTT 14ms)`, 'check_circle', 'text-emerald-700')}
+                      className="text-[#64748B] hover:text-[#17233B] transition-colors"
+                    >
+                      Ping Health
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import StatusBadge from './common/StatusBadge';
 import ConfirmDialog from './common/ConfirmDialog';
 import { EmptyState, LoadingState, DemoBadge } from './common/UIStates';
 
-export default function PatchReview({ incidents, onSelectIncident, showToast, onRefresh }) {
+export default function PatchReview({ incidents, onSelectIncident, showToast, onRefresh, isDemoMode = false }) {
   const [loading, setLoading] = useState(false);
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'history'
@@ -85,7 +85,10 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
               Zero-Trust Verification
             </span>
             <span className="text-[#94A3B8]">|</span>
-            <DemoBadge label="Human-in-the-Loop Gate" />
+            <span className="px-3 py-0.5 rounded-full bg-powder-blue/20 text-[#17233B] font-mono text-[10px] font-semibold border border-powder-blue/40 shadow-xs">
+              Human-in-the-Loop Gate
+            </span>
+            {isDemoMode && <DemoBadge label="DEMO DATA" />}
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-[#17233B] tracking-tight">
             Autonomous Patch Review & Approval
