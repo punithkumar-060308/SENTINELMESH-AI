@@ -1,3 +1,5 @@
+import os
+import sys
 from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -47,3 +49,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if (
+    "pytest" in sys.modules
+    or os.environ.get("ENVIRONMENT") == "testing"
+    or os.environ.get("TESTING", "").lower() in ("true", "1")
+):
+    settings.TESTING = True
+    settings.ENVIRONMENT = "testing"

@@ -6,9 +6,11 @@ from app.schemas.incident import (
     IncidentAnalyzeResponse,
     IncidentReportResponse,
 )
+from app.schemas.evidence import EvidenceResponse
 from app.schemas.patch import PatchProposal, PatchDecisionRequest, PatchDecisionResponse
 from app.schemas.verification import VerificationRunRequest, VerificationRunResponse
-from app.services import incident_service, patch_service, verification_service, agent_service
+from app.services import incident_service, patch_service, verification_service, agent_service, audit_service
+from app.repositories import evidence_repo, agent_log_repo, audit_repo
 
 router = APIRouter(prefix="/api/incidents", tags=["Incidents"])
 
@@ -39,6 +41,21 @@ def analyze_incident(incident_id: str = Path(..., description="Stable incident i
 @router.get("/{incident_id}/agents", summary="Get agent activity and timeline for incident")
 def get_incident_agents(incident_id: str = Path(..., description="Stable incident identifier")):
     return agent_service.get_incident_agent_activity(incident_id)
+
+
+@router.get("/{incident_id}/agent-logs", summary="List raw agent execution logs for incident")
+def get_incident_agent_logs(incident_id: str = Path(..., description="Stable incident identifier")):
+    return agent_log_repo.list_by_incident(incident_id)
+
+
+@router.get("/{incident_id}/evidence", response_model=List[EvidenceResponse], summary="List evidence records for incident")
+def list_incident_evidence(incident_id: str = Path(..., description="Stable incident identifier")):
+    return evidence_repo.list_by_incident(incident_id)
+
+
+@router.get("/{incident_id}/audit-logs", summary="List audit ledger records for incident")
+def list_incident_audit_logs(incident_id: str = Path(..., description="Stable incident identifier")):
+    return audit_repo.list_by_incident(incident_id)
 
 
 @router.get("/{incident_id}/patches", response_model=List[PatchProposal], summary="List proposed patches for incident")

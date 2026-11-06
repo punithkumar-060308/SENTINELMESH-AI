@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
-from app.repositories import incident_repo
+from app.repositories import incident_repo, agent_log_repo
 from app.schemas.agent import FleetAgent
 
 
@@ -96,11 +96,14 @@ FLEET_AGENTS: List[Dict[str, Any]] = [
 class AgentService:
     def __init__(self):
         self.incident_repo = incident_repo
+        self.agent_log_repo = agent_log_repo
 
     def get_incident_agent_activity(self, incident_id: str) -> Dict[str, Any]:
         incident = self.incident_repo.get_by_id(incident_id)
         if not incident:
             raise HTTPException(status_code=404, detail=f"Incident {incident_id} not found")
+
+        agent_logs = self.agent_log_repo.list_by_incident(incident_id)
 
         return {
             "incident_id": incident_id,
@@ -108,7 +111,29 @@ class AgentService:
             "active_step": incident.get("active_step", 1),
             "timeline": incident.get("timeline", []),
             "pod_logs": incident.get("pod_logs", []),
+            "agent_logs": agent_logs,
         }
+
+    def get_incident_agent_logs(self, incident_id: str) -> List[Dict[str, Any]]:
+        return self.agent_log_repo.list_by_incident(incident_id)
+
+    def record_agent_log(
+        self,
+        incident_id: str,
+        agent_name: str,
+        status: str = "completed",
+        input_summary: Optional[str] = None,
+        output_summary: Optional[str] = None,
+        error: Optional[str] = None
+    ) -> Dict[str, Any]:
+        return self.agent_log_repo.create({
+            "incident_id": incident_id,
+            "agent_name": agent_name,
+            "status": status,
+            "input_summary": input_summary,
+            "output_summary": output_summary,
+            "error": error
+        })
 
     def get_fleet_agents(self) -> List[FleetAgent]:
         return [FleetAgent(**agent) for agent in FLEET_AGENTS]
