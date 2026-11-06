@@ -97,115 +97,108 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
   };
 
   return (
-    <div className="flex flex-col w-full gap-space-lg">
-      {/* Ambient Top Gradient & Quick Metrics Row */}
-      <div className="relative overflow-hidden rounded-xl bg-surface-container-low p-space-md shadow-md border border-surface-container-high/40">
-        <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary-container/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute left-1/3 -bottom-24 h-48 w-48 rounded-full bg-secondary-container/10 blur-2xl pointer-events-none"></div>
-
-        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
-          {/* Titles & Live Stream Badge */}
-          <div className="flex flex-col gap-space-xs">
-            <div className="flex flex-wrap items-center gap-space-sm">
-              <span className="px-space-xs py-0.5 rounded bg-surface-container-high font-mono text-[11px] text-secondary uppercase tracking-wider border border-surface-container-highest">
-                Mesh Telemetry v4.2
+    <div className="flex flex-col w-full gap-6">
+      {/* Top Banner & Quick Metrics */}
+      <div className="relative p-6 sm:p-8 rounded-3xl glass-panel shadow-glass overflow-hidden border border-white/80">
+        <div className="relative z-10 flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-0.5 rounded-full bg-powder-blue/30 text-deep-navy font-mono text-[11px] font-semibold border border-powder-blue/40">
+                Live Incident Stream
               </span>
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-mono text-[11px]">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-                </span>
-                Streaming events from Kafka event bus (topic: telemetry.prod.cluster-us-east-1)
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-white/80 text-muted-slate font-mono text-[11px] border border-white">
+                <span className="w-2 h-2 rounded-full bg-sunset-peach animate-ping"></span>
+                Kafka ingress active
               </span>
               <DemoBadge />
             </div>
-            <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-deep-navy tracking-tight">
               Incident Management Console
             </h1>
-            <p className="font-body-md text-body-md text-on-surface-variant max-w-3xl text-sm">
+            <p className="text-xs sm:text-sm text-muted-slate max-w-3xl leading-relaxed">
               Real-time telemetry, automated triage, and agent dispatch pipeline across 14 services. Continuous synthesis by Observer, Investigator, Repair, and Verifier swarm nodes.
             </p>
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-space-sm shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               onClick={handleExportCSV}
-              className="flex items-center gap-space-xs px-space-md py-2 rounded bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-mono text-xs shadow-sm border border-surface-container-highest/40"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/80 text-deep-navy hover:bg-white transition-all text-xs font-semibold shadow-xs border border-white"
             >
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">download</span>
+              <span className="material-symbols-outlined text-[18px] text-muted-slate">download</span>
               <span>Export CSV</span>
             </button>
             <button
               onClick={onSimulateClick}
-              className="relative overflow-hidden flex items-center gap-space-xs px-space-md py-2 rounded bg-gradient-to-r from-primary-container via-inverse-primary to-secondary-container text-on-primary font-headline-sm text-xs font-semibold shadow-lg hover:shadow-xl hover:brightness-110 active:scale-95 transition-all"
+              className="flex items-center gap-2 px-5 py-2 rounded-full bg-deep-navy text-white text-xs font-semibold hover:bg-deep-navy/90 transition-all shadow-md active:scale-95"
             >
-              <span className="material-symbols-outlined text-[18px] animate-bounce">bolt</span>
+              <span className="material-symbols-outlined text-[18px] text-sunset-peach">bolt</span>
               <span>Simulate Incident</span>
             </button>
           </div>
         </div>
 
-        {/* Telemetry Pulse Strip (6 metrics) */}
-        <div className="mt-space-md pt-space-sm grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 gap-space-sm border-t border-surface-container-high/40 font-mono text-xs">
-          <div className="p-space-xs rounded bg-surface-container flex flex-col">
-            <span className="text-outline uppercase text-[10px]">Active Critical/High</span>
-            <span className="font-headline-md text-headline-md text-error font-semibold flex items-center gap-1">
+        {/* Telemetry Pulse Strip */}
+        <div className="mt-6 pt-5 grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-6 gap-3 border-t border-muted-slate/15 font-mono text-xs">
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">Active Critical/High</span>
+            <span className="text-lg font-bold text-rose-600 mt-1 flex items-center gap-1">
               {incidents.filter(i => (i.severity === 'critical' || i.severity === 'high' || i.severity === 'P0' || i.severity === 'P1') && i.status !== 'recovered').length}
-              <span className="text-[10px] text-error bg-error-container/40 px-1 py-0.2 rounded">+1 vs 1h</span>
+              <span className="text-[10px] text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded-full font-sans font-semibold">+1 vs 1h</span>
             </span>
           </div>
 
-          <div className="p-space-xs rounded bg-surface-container flex flex-col">
-            <span className="text-outline uppercase text-[10px]">MTTR (AI-Assisted)</span>
-            <span className="font-headline-md text-headline-md text-tertiary font-semibold flex items-center gap-1">
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">MTTR (AI-Assisted)</span>
+            <span className="text-lg font-bold text-deep-navy mt-1 flex items-center gap-1">
               4.2m
-              <span className="text-[10px] text-tertiary">-68% baseline</span>
+              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full font-sans font-semibold">-68%</span>
             </span>
           </div>
 
-          <div className="p-space-xs rounded bg-surface-container flex flex-col">
-            <span className="text-outline uppercase text-[10px]">Patches Generated</span>
-            <span className="font-headline-md text-headline-md text-secondary font-semibold">
-              18 <span className="text-outline font-normal text-[11px]">today</span>
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">Patches Generated</span>
+            <span className="text-lg font-bold text-deep-navy mt-1">
+              18 <span className="text-muted-slate font-normal text-[11px]">today</span>
             </span>
           </div>
 
-          <div className="p-space-xs rounded bg-surface-container flex flex-col">
-            <span className="text-outline uppercase text-[10px]">Swarm Confidence</span>
-            <span className="font-headline-md text-headline-md text-primary font-semibold">94.8%</span>
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">Swarm Confidence</span>
+            <span className="text-lg font-bold text-tertiary mt-1">96.4%</span>
           </div>
 
-          <div className="p-space-xs rounded bg-surface-container hidden xl:flex flex-col">
-            <span className="text-outline uppercase text-[10px]">Services Monitored</span>
-            <span className="font-headline-md text-headline-md text-on-surface font-semibold">14 / 14</span>
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 hidden xl:flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">Services Monitored</span>
+            <span className="text-lg font-bold text-deep-navy mt-1">14 / 14</span>
           </div>
 
-          <div className="p-space-xs rounded bg-surface-container hidden xl:flex flex-col">
-            <span className="text-outline uppercase text-[10px]">Auto-Recoveries</span>
-            <span className="font-headline-md text-headline-md text-tertiary font-semibold">89.2%</span>
+          <div className="p-3 rounded-2xl bg-white/70 border border-white/80 hidden xl:flex flex-col">
+            <span className="text-muted-slate uppercase text-[10px]">Auto-Recoveries</span>
+            <span className="text-lg font-bold text-emerald-700 mt-1">89.2%</span>
           </div>
         </div>
       </div>
 
       {/* Filter & Search Control Bar */}
-      <div className="rounded-xl bg-surface-container-low p-space-md shadow-sm border border-surface-container-high/40 flex flex-col lg:flex-row gap-space-sm items-stretch lg:items-center justify-between">
+      <div className="p-4 sm:p-5 rounded-3xl glass-panel shadow-sm border border-white/80 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
         {/* Instant Search Input */}
         <div className="relative flex-1 min-w-0">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
+          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-slate text-[20px] pointer-events-none">
             search
           </span>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-9 py-2 bg-surface-container rounded font-body-sm text-xs text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-high border border-surface-container-highest/30 transition-colors"
+            className="w-full pl-10 pr-9 py-2.5 bg-white/80 rounded-full text-xs text-deep-navy placeholder:text-muted-slate focus:outline-none focus:ring-2 focus:ring-powder-blue/70 border border-white/80 shadow-xs transition-all"
             placeholder="Search by incident ID, application, or error text..."
             type="text"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-outline hover:text-on-surface"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-slate hover:text-deep-navy"
             >
               <span className="material-symbols-outlined text-[16px]">close</span>
             </button>
@@ -213,13 +206,13 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
         </div>
 
         {/* Filter Dropdowns Group */}
-        <div className="flex flex-wrap items-center gap-space-xs font-mono text-xs">
+        <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
           {/* Severity Filter */}
           <div className="relative">
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value)}
-              className="appearance-none bg-surface-container hover:bg-surface-container-high text-on-surface pl-3 pr-8 py-2 rounded focus:outline-none cursor-pointer border border-surface-container-highest/40 transition-colors"
+              className="appearance-none bg-white/80 hover:bg-white text-deep-navy pl-3.5 pr-8 py-2 rounded-full cursor-pointer border border-white/80 shadow-xs focus:outline-none transition-colors"
             >
               <option value="all">All Severities</option>
               <option value="critical">Critical (P0)</option>
@@ -227,7 +220,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
               <option value="medium">Medium (P2)</option>
               <option value="low">Low (P3)</option>
             </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-slate pointer-events-none text-[18px]">
               arrow_drop_down
             </span>
           </div>
@@ -237,7 +230,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-surface-container hover:bg-surface-container-high text-on-surface pl-3 pr-8 py-2 rounded focus:outline-none cursor-pointer border border-surface-container-highest/40 transition-colors"
+              className="appearance-none bg-white/80 hover:bg-white text-deep-navy pl-3.5 pr-8 py-2 rounded-full cursor-pointer border border-white/80 shadow-xs focus:outline-none transition-colors"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active Pipeline</option>
@@ -249,7 +242,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
               <option value="recovered">Recovered</option>
               <option value="rejected">Rejected</option>
             </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-slate pointer-events-none text-[18px]">
               arrow_drop_down
             </span>
           </div>
@@ -259,14 +252,14 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
             <select
               value={appFilter}
               onChange={(e) => setAppFilter(e.target.value)}
-              className="appearance-none bg-surface-container hover:bg-surface-container-high text-on-surface pl-3 pr-8 py-2 rounded focus:outline-none cursor-pointer border border-surface-container-highest/40 transition-colors"
+              className="appearance-none bg-white/80 hover:bg-white text-deep-navy pl-3.5 pr-8 py-2 rounded-full cursor-pointer border border-white/80 shadow-xs focus:outline-none transition-colors"
             >
               <option value="all">All Applications</option>
               {uniqueApps.map(app => (
                 <option key={app} value={app}>{app}</option>
               ))}
             </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-slate pointer-events-none text-[18px]">
               arrow_drop_down
             </span>
           </div>
@@ -276,12 +269,12 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="appearance-none bg-surface-container hover:bg-surface-container-high text-on-surface pl-3 pr-8 py-2 rounded focus:outline-none cursor-pointer border border-surface-container-highest/40 transition-colors"
+              className="appearance-none bg-white/80 hover:bg-white text-deep-navy pl-3.5 pr-8 py-2 rounded-full cursor-pointer border border-white/80 shadow-xs focus:outline-none transition-colors"
             >
               <option value="newest">Sort: Detected (Newest)</option>
               <option value="severity">Sort: Severity (High → Low)</option>
             </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[18px]">
+            <span className="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-slate pointer-events-none text-[18px]">
               sort
             </span>
           </div>
@@ -289,7 +282,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
           {/* Reset button */}
           <button
             onClick={resetFilters}
-            className="p-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors border border-surface-container-highest/30"
+            className="w-9 h-9 rounded-full bg-white/80 hover:bg-white text-muted-slate hover:text-deep-navy transition-colors border border-white/80 shadow-xs flex items-center justify-center"
             title="Reset Filters"
           >
             <span className="material-symbols-outlined text-[18px]">restart_alt</span>
@@ -297,15 +290,15 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
         </div>
       </div>
 
-      {/* Incident Data Grid / Table Surface */}
-      <div className="rounded-xl bg-surface-container-low shadow-md overflow-hidden flex flex-col border border-surface-container-high/40">
-        {/* Grid Column Headers */}
-        <div className="bg-surface-container px-space-md py-space-sm hidden xl:grid grid-cols-12 gap-space-sm items-center font-mono uppercase text-[11px] text-on-surface-variant select-none border-b border-surface-container-high/40">
+      {/* Incident Data Grid / Card Surface */}
+      <div className="rounded-3xl glass-panel shadow-glass overflow-hidden flex flex-col border border-white/80">
+        {/* Column Headers */}
+        <div className="bg-white/60 px-6 py-3.5 hidden xl:grid grid-cols-12 gap-3 items-center font-mono uppercase text-[11px] text-muted-slate select-none border-b border-muted-slate/10">
           <div className="col-span-1 flex items-center gap-2">
             <input
               checked={selectedIds.length === filteredIncidents.length && filteredIncidents.length > 0}
               onChange={handleSelectAll}
-              className="w-4 h-4 rounded bg-surface-container-high accent-primary cursor-pointer"
+              className="w-4 h-4 rounded accent-deep-navy cursor-pointer"
               type="checkbox"
             />
             <span>Incident</span>
@@ -318,8 +311,8 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
           <div className="col-span-1 text-right">Action</div>
         </div>
 
-        {/* Grid Rows List */}
-        <div className="flex flex-col divide-y divide-surface-container-high/30">
+        {/* Rows List */}
+        <div className="flex flex-col divide-y divide-muted-slate/10">
           {filteredIncidents.length === 0 ? (
             <EmptyState
               title="No incidents match filter criteria"
@@ -327,7 +320,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
               action={
                 <button
                   onClick={resetFilters}
-                  className="px-3 py-1.5 rounded bg-surface-container-high hover:bg-surface-container-highest text-xs font-mono text-secondary transition-colors"
+                  className="px-4 py-2 rounded-full bg-deep-navy text-white text-xs font-semibold shadow-xs"
                 >
                   Reset All Filters
                 </button>
@@ -339,7 +332,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
               return (
                 <div
                   key={inc.id}
-                  className="group p-space-md hover:bg-surface-container/60 transition-colors flex flex-col xl:grid xl:grid-cols-12 gap-space-sm items-start xl:items-center bg-surface-container-low"
+                  className="p-5 hover:bg-white/80 transition-colors flex flex-col xl:grid xl:grid-cols-12 gap-3 items-start xl:items-center bg-white/40"
                 >
                   {/* Col 1: ID + Select */}
                   <div className="xl:col-span-1 flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-start">
@@ -347,12 +340,12 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                       <input
                         checked={selectedIds.includes(inc.id)}
                         onChange={() => handleToggleRow(inc.id)}
-                        className="w-4 h-4 rounded bg-surface-container-high accent-primary cursor-pointer"
+                        className="w-4 h-4 rounded accent-deep-navy cursor-pointer"
                         type="checkbox"
                       />
                       <span 
                         onClick={() => onSelectIncident(inc)}
-                        className="font-mono text-primary font-bold tracking-tight cursor-pointer hover:underline text-xs"
+                        className="font-mono text-deep-navy font-bold tracking-tight cursor-pointer hover:underline text-xs"
                       >
                         {inc.id}
                       </span>
@@ -364,71 +357,57 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
 
                   {/* Col 2: Service Tag */}
                   <div className="xl:col-span-2 flex items-center gap-1.5 min-w-0">
-                    <span className="material-symbols-outlined text-[16px] text-outline shrink-0">
+                    <span className="material-symbols-outlined text-[16px] text-muted-slate shrink-0">
                       dns
                     </span>
-                    <span className="font-mono text-on-surface truncate font-medium text-xs">
+                    <span className="font-mono text-deep-navy truncate font-semibold text-xs">
                       {appName}
                     </span>
                     {inc.version && (
-                      <span className="px-1 py-0.2 rounded bg-surface-container font-mono text-outline text-[10px]">
+                      <span className="px-1.5 py-0.5 rounded-md bg-white border border-muted-slate/20 font-mono text-muted-slate text-[10px]">
                         {inc.version}
                       </span>
                     )}
                   </div>
 
-                  {/* Col 3: Error Message & Signature */}
-                  <div className="xl:col-span-4 flex flex-col min-w-0 pr-space-xs">
-                    <span className="font-mono text-error font-medium truncate text-xs">
-                      {inc.signature || inc.title}
-                    </span>
-                    <div className="flex items-center gap-2 font-mono text-on-surface-variant truncate mt-0.5 text-[11px]">
-                      {inc.location && <span className="text-outline">{inc.location}</span>}
-                      {inc.traceId && (
-                        <>
-                          <span>•</span>
-                          <span className="text-outline">
-                            trace: <span className="text-secondary">{inc.traceId}</span>
-                          </span>
-                        </>
-                      )}
-                      {inc.impact && (
-                        <>
-                          <span>•</span>
-                          <span className="text-outline">{inc.impact}</span>
-                        </>
-                      )}
+                  {/* Col 3: Title */}
+                  <div className="xl:col-span-4 min-w-0">
+                    <div
+                      onClick={() => onSelectIncident(inc)}
+                      className="text-xs font-bold text-deep-navy hover:text-deep-navy/80 cursor-pointer truncate"
+                      title={inc.title}
+                    >
+                      {inc.title}
                     </div>
+                    {inc.signature && (
+                      <div className="text-[11px] font-mono text-muted-slate truncate mt-0.5" title={inc.signature}>
+                        {inc.signature}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Col 4: Severity Badge */}
-                  <div className="hidden xl:flex xl:col-span-1 items-center">
-                    <SeverityBadge severity={inc.severity} />
+                  {/* Col 4: Severity */}
+                  <div className="xl:col-span-1 hidden xl:flex items-center">
+                    <SeverityBadge severity={inc.severity} short />
                   </div>
 
-                  {/* Col 5: Pipeline & Agent Tag */}
-                  <div className="xl:col-span-2 flex flex-col gap-1 w-full xl:w-auto font-mono">
+                  {/* Col 5: Pipeline / Status */}
+                  <div className="xl:col-span-2 flex items-center">
                     <StatusBadge status={inc.status} />
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px]">
-                      <span className="material-symbols-outlined text-[14px] text-primary">auto_fix_high</span>
-                      <span className="truncate">{inc.pipelineAgent || 'Swarm Triage'}</span>
-                    </div>
                   </div>
 
-                  {/* Col 6: Detected Time */}
-                  <div className="xl:col-span-1 flex items-center font-mono text-on-surface-variant text-[11px]">
-                    <span className="material-symbols-outlined text-[14px] mr-1 text-outline">schedule</span>
-                    <span>{inc.detectedTime || 'Recently'}</span>
+                  {/* Col 6: Detected */}
+                  <div className="xl:col-span-1 text-[11px] font-mono text-muted-slate">
+                    {inc.detectedTime || 'Just now'}
                   </div>
 
-                  {/* Col 7: View Details CTA */}
-                  <div className="xl:col-span-1 flex items-center justify-end w-full xl:w-auto pt-2 xl:pt-0">
+                  {/* Col 7: Action */}
+                  <div className="xl:col-span-1 text-right w-full xl:w-auto">
                     <button
                       onClick={() => onSelectIncident(inc)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded bg-primary text-on-primary font-body-sm text-xs font-semibold hover:bg-primary-fixed transition-colors shadow-sm"
+                      className="px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-deep-navy hover:text-white text-deep-navy border border-white text-xs font-semibold transition-all shadow-xs"
                     >
-                      <span>Investigate</span>
-                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                      Inspect &rarr;
                     </button>
                   </div>
                 </div>

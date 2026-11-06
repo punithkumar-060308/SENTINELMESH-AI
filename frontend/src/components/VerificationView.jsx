@@ -56,34 +56,34 @@ export default function VerificationView({ showToast }) {
     switch (s) {
       case 'passed':
         return (
-          <span className="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary font-mono text-[10px] font-bold border border-tertiary/30 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-mono text-[10px] font-bold border border-emerald-300 flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
             PASSED
           </span>
         );
       case 'running':
         return (
-          <span className="px-2 py-0.5 rounded bg-secondary-container/20 text-secondary font-mono text-[10px] font-bold border border-secondary/30 flex items-center gap-1 animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-mono text-[10px] font-bold border border-amber-300 flex items-center gap-1 shadow-xs animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
             RUNNING
           </span>
         );
       case 'failed':
         return (
-          <span className="px-2 py-0.5 rounded bg-error-container/20 text-error font-mono text-[10px] font-bold border border-error/30 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+          <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 font-mono text-[10px] font-bold border border-rose-300 flex items-center gap-1 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
             FAILED
           </span>
         );
       case 'queued':
         return (
-          <span className="px-2 py-0.5 rounded bg-surface-container-highest text-outline font-mono text-[10px] font-bold border border-surface-container-high flex items-center gap-1">
+          <span className="px-2.5 py-1 rounded-full bg-slate-100 text-[#475569] font-mono text-[10px] font-bold border border-slate-200 flex items-center gap-1">
             QUEUED
           </span>
         );
       default:
         return (
-          <span className="px-2 py-0.5 rounded bg-surface-container-high text-outline font-mono text-[10px]">
+          <span className="px-2.5 py-1 rounded-full bg-slate-100 text-[#475569] font-mono text-[10px] font-bold">
             {status}
           </span>
         );
@@ -91,34 +91,37 @@ export default function VerificationView({ showToast }) {
   };
 
   return (
-    <div className="flex flex-col w-full gap-space-lg font-sans">
+    <div className="flex flex-col w-full gap-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#CBD5E1]">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="material-symbols-outlined text-tertiary text-2xl">science</span>
-            <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
-              Independent Verification Engine
-            </h1>
+          <div className="flex flex-wrap items-center gap-2 mb-2 font-mono text-xs">
+            <span className="px-3 py-0.5 rounded-full bg-powder-blue/40 text-[#17233B] font-bold uppercase tracking-wider border border-powder-blue/60 shadow-xs">
+              cgroup v2 sandbox
+            </span>
+            <span className="text-[#94A3B8]">|</span>
             <DemoBadge label="Ephemeral Testcontainer" />
           </div>
-          <p className="text-xs text-on-surface-variant font-mono mt-1">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#17233B] tracking-tight">
+            Independent Verification Engine
+          </h1>
+          <p className="mt-2 text-sm text-[#334155] font-medium leading-relaxed max-w-3xl">
             Isolated ephemeral test execution guaranteeing that AI-generated fixes are mathematically and empirically sound before deployment.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 self-start lg:self-auto">
           <button
             onClick={fetchRuns}
-            className="p-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface border border-surface-container-highest transition-colors"
+            className="w-10 h-10 rounded-full bg-white text-[#17233B] hover:bg-slate-50 transition-colors shadow-xs border border-[#CBD5E1] flex items-center justify-center"
             title="Refresh Runs"
           >
-            <span className="material-symbols-outlined text-[18px]">refresh</span>
+            <span className="material-symbols-outlined text-[20px]">refresh</span>
           </button>
           <button
             onClick={handleRunNewVerification}
             disabled={isExecuting}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-primary-container text-on-primary font-semibold hover:opacity-95 text-xs shadow-md transition-all active:scale-95 disabled:opacity-70 font-mono"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#17233B] text-white font-bold hover:bg-[#1e2f4f] text-xs shadow-md transition-all active:scale-95 disabled:opacity-70 font-mono"
           >
             {isExecuting ? (
               <>
@@ -127,7 +130,7 @@ export default function VerificationView({ showToast }) {
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+                <span className="material-symbols-outlined text-[18px] text-emerald-400">play_arrow</span>
                 <span>Execute Sandbox Verification</span>
               </>
             )}
@@ -136,55 +139,57 @@ export default function VerificationView({ showToast }) {
       </div>
 
       {/* Verification Invariant Banner */}
-      <div className="bg-surface-container-low rounded-xl p-3.5 border border-tertiary/30 flex items-start gap-3 text-xs font-mono">
-        <span className="material-symbols-outlined text-tertiary text-xl shrink-0 mt-0.5">verified_user</span>
+      <div className="rounded-2xl p-4 bg-[#E9E8F8]/70 border border-[#8DB9F0]/40 flex items-start gap-3 text-xs shadow-xs">
+        <span className="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">verified_user</span>
         <div className="space-y-1">
-          <div className="text-on-surface font-semibold">Zero Regression Contract</div>
-          <div className="text-on-surface-variant leading-relaxed font-sans">
+          <div className="text-[#17233B] font-bold text-sm">Zero Regression Contract</div>
+          <div className="text-[#334155] leading-relaxed font-sans">
             A successful result means the backend's independent test execution reports success in an isolated cgroup sandbox. An LLM response or code generation alone never declares a repair verified.
           </div>
         </div>
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-space-md text-xs font-mono">
-        <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-high/40 flex flex-col justify-between">
-          <span className="text-outline uppercase text-[10px]">Active Ephemeral Sandbox</span>
-          <span className="font-bold text-sm text-secondary mt-1">mesh-sandbox-992</span>
-          <span className="text-on-surface-variant text-[11px] mt-1">Docker rootless, 2 CPU, 4GB RAM</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div className="p-5 rounded-2xl glass-panel border border-white shadow-glass flex flex-col justify-between">
+          <span className="text-[#64748B] uppercase font-bold text-[10px] tracking-wider">Active Ephemeral Sandbox</span>
+          <span className="font-black text-base text-[#2563EB] mt-1 font-mono">mesh-sandbox-992</span>
+          <span className="text-[#64748B] text-[11px] font-medium mt-1">Docker rootless, 2 CPU, 4GB RAM</span>
         </div>
-        <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-high/40 flex flex-col justify-between">
-          <span className="text-outline uppercase text-[10px]">Regression Invariant</span>
-          <span className="font-bold text-sm text-tertiary mt-1">0 Regressions Detected</span>
-          <span className="text-on-surface-variant text-[11px] mt-1">Master frozen baseline pass</span>
+        <div className="p-5 rounded-2xl glass-panel border border-white shadow-glass flex flex-col justify-between">
+          <span className="text-[#64748B] uppercase font-bold text-[10px] tracking-wider">Regression Invariant</span>
+          <span className="font-black text-base text-emerald-700 mt-1 font-mono">0 Regressions Detected</span>
+          <span className="text-[#64748B] text-[11px] font-medium mt-1">Master frozen baseline pass</span>
         </div>
-        <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-high/40 flex flex-col justify-between">
-          <span className="text-outline uppercase text-[10px]">Synthetic Edge Coverage</span>
-          <span className="font-bold text-sm text-primary mt-1">+2 Auto-Generated Specs</span>
-          <span className="text-on-surface-variant text-[11px] mt-1">Synthesized from failure trace</span>
+        <div className="p-5 rounded-2xl glass-panel border border-white shadow-glass flex flex-col justify-between">
+          <span className="text-[#64748B] uppercase font-bold text-[10px] tracking-wider">Synthetic Edge Coverage</span>
+          <span className="font-black text-base text-[#17233B] mt-1 font-mono">+2 Auto-Generated Specs</span>
+          <span className="text-[#64748B] text-[11px] font-medium mt-1">Synthesized from failure trace</span>
         </div>
-        <div className="p-4 rounded-xl bg-surface-container-low border border-surface-container-high/40 flex flex-col justify-between">
-          <span className="text-outline uppercase text-[10px]">Execution Latency</span>
-          <span className="font-bold text-sm text-on-surface mt-1">Avg 1,130 ms</span>
-          <span className="text-on-surface-variant text-[11px] mt-1">Container boot to exit</span>
+        <div className="p-5 rounded-2xl glass-panel border border-white shadow-glass flex flex-col justify-between">
+          <span className="text-[#64748B] uppercase font-bold text-[10px] tracking-wider">Execution Latency</span>
+          <span className="font-black text-base text-[#17233B] mt-1 font-mono">Avg 1,130 ms</span>
+          <span className="text-[#64748B] text-[11px] font-medium mt-1">Container boot to exit</span>
         </div>
       </div>
 
       {/* Main Grid: Runs List & Detailed Suite View */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Runs List (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-space-sm font-mono text-xs">
+        <div className="lg:col-span-5 flex flex-col gap-4">
           <div className="flex items-center justify-between pb-1">
-            <span className="text-outline uppercase text-[11px]">Verification Execution Runs</span>
-            <div className="flex items-center gap-1">
+            <span className="text-xs font-bold font-mono text-[#475569] uppercase tracking-wider">
+              Verification Execution Runs
+            </span>
+            <div className="flex items-center glass-panel p-1 rounded-full border border-white shadow-xs font-mono text-xs">
               {['ALL', 'PASSED', 'RUNNING'].map((filter) => (
                 <button
                   key={filter}
                   onClick={() => setFilterStatus(filter)}
-                  className={`px-2 py-0.5 rounded text-[10px] ${
+                  className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
                     filterStatus === filter
-                      ? 'bg-secondary-container text-on-secondary-container font-bold'
-                      : 'bg-surface-container text-outline hover:text-on-surface'
+                      ? 'bg-[#17233B] text-white shadow-sm'
+                      : 'text-[#475569] hover:text-[#17233B]'
                   }`}
                 >
                   {filter}
@@ -198,35 +203,37 @@ export default function VerificationView({ showToast }) {
           ) : filteredRuns.length === 0 ? (
             <EmptyState title="No verification runs found" description="Execute a test suite in the sandbox to generate verification records." />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {filteredRuns.map((r) => {
                 const isSelected = selectedRun && selectedRun.id === r.id;
                 return (
                   <div
                     key={r.id}
                     onClick={() => setSelectedRunId(r.id)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-surface-container-high border-tertiary/60 shadow-md ring-1 ring-tertiary/30'
-                        : 'bg-surface-container hover:bg-surface-container-high/60 border-surface-container-high/40'
+                        ? 'bg-white border-2 border-[#8DB9F0] shadow-glass ring-2 ring-[#8DB9F0]/30'
+                        : 'glass-panel glass-panel-hover border-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-on-surface">{r.id}</span>
-                        <span className="text-secondary font-semibold">{r.incidentId}</span>
-                        <span className="text-primary font-medium">{r.patchId}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <span className="font-bold text-[#17233B]">{r.id}</span>
+                        <span className="text-[#2563EB] font-semibold">{r.incidentId}</span>
+                        <span className="bg-powder-blue/30 text-[#17233B] px-2 py-0.5 rounded font-mono text-[11px] font-bold">
+                          {r.patchId}
+                        </span>
                       </div>
                       {getStatusBadge(r.status)}
                     </div>
 
-                    <div className="text-outline truncate text-[11px]">
-                      Target: <span className="text-on-surface">{r.targetFile}</span>
+                    <div className="text-[#64748B] truncate text-xs font-mono">
+                      Target: <span className="text-[#17233B] font-semibold">{r.targetFile}</span>
                     </div>
 
-                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-surface-container-high/40 text-[11px] text-outline">
-                      <span className="text-tertiary">{r.passed} passed · {r.failed} failed</span>
-                      <span>{r.durationMs}ms</span>
+                    <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-[#64748B] font-mono">
+                      <span className="text-emerald-700 font-bold">{r.passed} passed · {r.failed} failed</span>
+                      <span className="font-semibold">{r.durationMs}ms</span>
                     </div>
                   </div>
                 );
@@ -236,62 +243,66 @@ export default function VerificationView({ showToast }) {
         </div>
 
         {/* Right Column: Active Run Suite Details (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col gap-space-sm font-mono text-xs">
+        <div className="lg:col-span-7 flex flex-col gap-4">
           {selectedRun ? (
-            <div className="bg-surface-container rounded-xl border border-surface-container-high/50 overflow-hidden shadow-lg">
+            <div className="glass-panel rounded-3xl border border-white shadow-glass overflow-hidden flex flex-col">
               {/* Suite header */}
-              <div className="p-4 bg-surface-container-high/60 border-b border-surface-container-high/50 flex flex-col gap-2">
+              <div className="p-6 bg-white/70 border-b border-slate-200/80 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-tertiary">check_circle</span>
-                    <span className="font-bold text-on-surface text-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="material-symbols-outlined text-emerald-600 text-2xl">check_circle</span>
+                    <span className="font-black text-[#17233B] text-lg font-mono">
                       Run Details: {selectedRun.id}
                     </span>
                   </div>
                   {getStatusBadge(selectedRun.status)}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-surface-container-highest/40 text-[11px]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-200/80 font-mono text-xs">
                   <div>
-                    <span className="text-outline block">Incident</span>
-                    <span className="text-secondary font-semibold">{selectedRun.incidentId}</span>
+                    <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider block">Incident</span>
+                    <span className="text-[#2563EB] font-bold text-xs mt-0.5 block">{selectedRun.incidentId}</span>
                   </div>
                   <div>
-                    <span className="text-outline block">Patch ID</span>
-                    <span className="text-primary font-semibold">{selectedRun.patchId}</span>
+                    <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider block">Patch ID</span>
+                    <span className="text-[#17233B] font-bold text-xs mt-0.5 block">{selectedRun.patchId}</span>
                   </div>
                   <div>
-                    <span className="text-outline block">Duration</span>
-                    <span className="text-on-surface font-semibold">{selectedRun.durationMs}ms</span>
+                    <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider block">Duration</span>
+                    <span className="text-[#17233B] font-bold text-xs mt-0.5 block">{selectedRun.durationMs}ms</span>
                   </div>
                   <div>
-                    <span className="text-outline block">Environment</span>
-                    <span className="text-on-surface truncate block" title={selectedRun.environment}>Isolated Container</span>
+                    <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider block">Environment</span>
+                    <span className="text-[#17233B] font-bold text-xs truncate mt-0.5 block" title={selectedRun.environment}>Isolated Container</span>
                   </div>
                 </div>
               </div>
 
               {/* Individual Tests breakdown */}
-              <div className="p-3 bg-surface-container-low text-xs border-b border-surface-container-high/40 flex items-center justify-between">
-                <span className="font-semibold text-on-surface">Target Test Execution Breakdown</span>
-                <span className="text-tertiary font-bold">{selectedRun.passed} / {selectedRun.passed + selectedRun.failed} PASSED</span>
+              <div className="px-6 py-3.5 bg-white/40 text-xs border-b border-slate-200/80 flex items-center justify-between">
+                <span className="font-bold text-[#17233B] uppercase tracking-wider text-[11px]">
+                  Target Test Execution Breakdown
+                </span>
+                <span className="text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-full font-bold font-mono text-xs">
+                  {selectedRun.passed} / {selectedRun.passed + selectedRun.failed} PASSED
+                </span>
               </div>
 
-              <div className="divide-y divide-surface-container-high/30">
+              <div className="divide-y divide-slate-100 bg-white/50">
                 {(selectedRun.tests || []).map((t, idx) => (
-                  <div key={idx} className="p-3 flex items-center justify-between hover:bg-surface-container/40">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className={`material-symbols-outlined text-[16px] shrink-0 ${
-                        t.status === 'passed' ? 'text-tertiary' : t.status === 'running' ? 'text-secondary animate-spin' : 'text-error'
+                  <div key={idx} className="px-6 py-3.5 flex items-center justify-between hover:bg-white/80 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`material-symbols-outlined text-[18px] shrink-0 ${
+                        t.status === 'passed' ? 'text-emerald-600' : t.status === 'running' ? 'text-[#2563EB] animate-spin' : 'text-rose-600'
                       }`}>
                         {t.status === 'passed' ? 'check_circle' : t.status === 'running' ? 'sync' : 'cancel'}
                       </span>
-                      <span className="text-on-surface font-mono truncate">{t.name}</span>
+                      <span className="text-[#17233B] font-mono text-xs font-semibold truncate">{t.name}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-outline text-[11px]">{t.duration}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        t.status === 'passed' ? 'bg-tertiary-container/20 text-tertiary' : 'bg-secondary-container/20 text-secondary'
+                      <span className="text-[#64748B] text-xs font-mono">{t.duration}</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        t.status === 'passed' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-blue-50 text-[#2563EB] border border-blue-200'
                       }`}>
                         {t.status.toUpperCase()}
                       </span>
@@ -301,16 +312,16 @@ export default function VerificationView({ showToast }) {
               </div>
 
               {/* Execution log footer */}
-              <div className="p-3 bg-surface-container-lowest border-t border-surface-container-high/40 text-[11px] text-outline flex items-center justify-between">
+              <div className="px-6 py-3.5 bg-white/80 border-t border-slate-200 text-xs text-[#64748B] font-mono flex items-center justify-between">
                 <span>Completed: {selectedRun.completedAt ? new Date(selectedRun.completedAt).toUTCString() : 'In Progress'}</span>
-                <span className="text-tertiary flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">shield</span>
+                <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px]">shield</span>
                   Cryptographically Signed Attestation
                 </span>
               </div>
             </div>
           ) : (
-            <div className="bg-surface-container rounded-xl p-8 text-center text-outline border border-surface-container-high/40">
+            <div className="glass-panel rounded-3xl p-12 text-center text-[#64748B] border border-white shadow-glass">
               Select a verification run from the list to view test suite executions.
             </div>
           )}

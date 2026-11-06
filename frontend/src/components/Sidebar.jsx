@@ -10,9 +10,9 @@ export default function Sidebar({
 }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: 'grid_view' },
-    { id: 'incidents', label: 'Incidents', icon: 'warning', badge: incidentsCount, badgeColor: 'bg-error-container text-on-error-container' },
+    { id: 'incidents', label: 'Incidents', icon: 'warning', badge: incidentsCount, badgeColor: 'bg-sunset-peach text-[#17233B]' },
     { id: 'agents', label: 'AI Agents', icon: 'smart_toy', badge: '4', isAgentsBadge: true },
-    { id: 'patch-review', label: 'Patch Review', icon: 'call_merge', badge: pendingPatchesCount, badgeColor: 'bg-surface-container-highest text-secondary' },
+    { id: 'patch-review', label: 'Patch Review', icon: 'call_merge', badge: pendingPatchesCount, badgeColor: 'bg-powder-blue text-[#17233B]' },
     { id: 'verification', label: 'Verification', icon: 'check_circle' },
     { id: 'audit-logs', label: 'Audit Logs', icon: 'receipt_long' },
     { id: 'settings', label: 'Settings', icon: 'tune' },
@@ -29,123 +29,78 @@ export default function Sidebar({
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 bg-surface-container-lowest/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-[#17233B]/30 backdrop-blur-sm z-40 lg:hidden"
         />
       )}
 
-      <aside className={`fixed left-0 top-0 h-screen w-64 bg-surface-container-lowest flex flex-col z-50 border-r border-surface-container-high/40 shadow-xl transition-transform duration-200 lg:translate-x-0 ${
-        isOpenMobile ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
-        {/* Brand & Logo Header */}
-        <div className="p-space-md flex flex-col gap-space-xs border-b border-surface-container-high/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-space-sm cursor-pointer" onClick={() => handleNavClick('overview')}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary via-secondary to-tertiary p-0.5 flex items-center justify-center shadow-md">
-                <div className="w-full h-full bg-surface-container-lowest rounded-[6px] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-secondary text-[20px]">shield</span>
-                </div>
-              </div>
-              <span className="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold">
-                SentinelMesh
+      {/* Floating Vertical Navigation Rail (Image 2 style) */}
+      <aside
+        className={`fixed left-4 lg:left-6 top-6 bottom-6 w-20 z-50 glass-rail rounded-[2.5rem] flex flex-col items-center justify-between py-6 shadow-2xl transition-all duration-300 ${
+          isOpenMobile ? 'translate-x-0' : '-translate-x-32 lg:translate-x-0'
+        }`}
+      >
+        {/* Brand Shield Logo Pill */}
+        <div className="flex flex-col items-center">
+          <button
+            onClick={() => handleNavClick('overview')}
+            className="w-12 h-12 rounded-full bg-gradient-to-tr from-powder-blue via-soft-lavender to-sunset-peach p-0.5 flex items-center justify-center shadow-md hover:scale-105 transition-transform group"
+            title="SentinelMesh AI"
+          >
+            <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
+              <span className="material-symbols-outlined text-[#17233B] text-[22px] group-hover:rotate-12 transition-transform">
+                shield
               </span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className="px-space-xs py-0.5 rounded-full bg-secondary-container/20 text-secondary font-label-sm text-label-sm border border-secondary/30 font-mono font-medium text-[10px]">
-                PROD
-              </span>
-              {/* Mobile close button */}
-              <button
-                onClick={onCloseMobile}
-                className="lg:hidden p-1 text-on-surface-variant hover:text-on-surface"
-              >
-                <span className="material-symbols-outlined text-lg">close</span>
-              </button>
-            </div>
-          </div>
-          <p className="font-label-sm text-label-sm text-on-surface-variant font-mono text-[11px]">
-            Detect. Investigate. Repair. Verify.
-          </p>
+          </button>
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 px-space-xs py-space-sm space-y-1 overflow-y-auto">
+        {/* Navigation Icons Stack */}
+        <nav className="flex flex-col items-center gap-3 my-auto">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between px-space-sm py-2 rounded transition-all duration-150 ${
-                  isActive
-                    ? 'bg-surface-container-high text-on-surface font-semibold shadow-sm'
-                    : 'text-on-surface-variant hover:bg-surface-container/60 hover:text-on-surface font-body-sm text-body-sm'
-                }`}
-              >
-                <div className="flex items-center gap-space-sm">
-                  <span className={`material-symbols-outlined text-[18px] ${isActive ? 'text-primary' : 'text-outline'}`}>
+              <div key={item.id} className="relative group flex items-center justify-center">
+                <button
+                  onClick={() => handleNavClick(item.id)}
+                  aria-label={item.label}
+                  className={`relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                    isActive
+                      ? 'bg-[#17233B] text-white shadow-xl shadow-[#17233B]/30 scale-105'
+                      : 'text-[#475569] hover:text-[#17233B] hover:bg-white/90 hover:scale-105'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[22px]">
                     {item.icon}
                   </span>
-                  <span className="tracking-wide text-xs">{item.label}</span>
-                </div>
 
-                {item.isAgentsBadge ? (
-                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary font-label-sm text-[10px] font-bold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
-                    4
-                  </span>
-                ) : item.badge !== undefined && item.badge > 0 ? (
-                  <span className={`px-1.5 py-0.5 rounded-full font-label-sm text-[10px] font-bold ${item.badgeColor}`}>
-                    {item.badge}
-                  </span>
-                ) : null}
-              </button>
+                  {/* Badge Counter */}
+                  {item.isAgentsBadge ? (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-powder-blue text-[#17233B] font-bold text-[9px] flex items-center justify-center shadow-sm">
+                      4
+                    </span>
+                  ) : item.badge !== undefined && item.badge > 0 ? (
+                    <span className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center shadow-sm ${item.badgeColor}`}>
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </button>
+
+                {/* Floating Tooltip on Hover */}
+                <div className="hidden lg:block absolute left-16 px-3 py-1.5 rounded-xl glass-pill text-xs font-bold text-[#17233B] whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 group-hover:translate-x-1 transition-all shadow-md z-50">
+                  {item.label}
+                </div>
+              </div>
             );
           })}
         </nav>
 
-        {/* Bottom Status & Profile */}
-        <div className="p-space-sm flex flex-col gap-space-sm bg-surface-container-low/70 border-t border-surface-container-high/40">
-          {/* Agent Cluster Status Box */}
+        {/* Bottom Utility Indicator */}
+        <div className="flex flex-col items-center gap-3">
           <div
-            onClick={() => handleNavClick('agents')}
-            className="p-space-xs rounded bg-surface-container-high/70 hover:bg-surface-container-high transition-colors cursor-pointer flex items-center justify-between border border-surface-container-highest/40"
+            className="w-10 h-10 rounded-full bg-white/90 border border-white flex items-center justify-center text-[#475569] shadow-sm"
+            title="Cluster Mesh: Online"
           >
-            <div className="flex items-center gap-space-xs">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
-              </span>
-              <span className="font-label-sm text-label-sm text-on-surface font-mono text-[11px]">4 Agents Active</span>
-            </div>
-            <span className="font-label-sm text-label-sm text-secondary font-mono font-bold text-[11px]">100%</span>
-          </div>
-
-          {/* Environment details */}
-          <div className="flex flex-col gap-0.5 px-space-xs">
-            <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider text-[10px] font-mono">
-              Environment
-            </span>
-            <span className="font-body-sm text-body-sm text-on-surface truncate font-mono text-[11px]">
-              Demo Mode (Mock Telemetry)
-            </span>
-          </div>
-
-          {/* User Profile */}
-          <div className="flex items-center gap-space-sm pt-space-xs border-t border-surface-container-high/30">
-            <div className="w-8 h-8 rounded-full bg-surface-container-highest border border-primary/30 flex items-center justify-center font-bold text-primary text-xs">
-              EV
-            </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="font-body-sm text-body-sm text-on-surface font-medium truncate text-xs">
-                Elena Vance
-              </span>
-              <span className="font-label-sm text-label-sm text-secondary truncate font-mono text-[11px]">
-                Staff SRE Lead
-              </span>
-            </div>
-            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
-              unfold_more
-            </span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
         </div>
       </aside>

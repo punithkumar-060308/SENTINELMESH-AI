@@ -37,23 +37,23 @@ export default function ConfirmDialog({
   };
 
   return (
-    <div className="fixed inset-0 bg-surface-container-lowest/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-surface-container border border-surface-container-highest rounded-2xl max-w-lg w-full p-space-lg shadow-2xl animate-in fade-in duration-150 font-sans">
-        <div className="flex items-start gap-3 mb-space-md">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+    <div className="fixed inset-0 bg-deep-navy/25 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="glass-panel border border-white/90 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl animate-in zoom-in-95 duration-150 font-sans">
+        <div className="flex items-start gap-3.5 mb-4">
+          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm ${
             variant === 'danger'
-              ? 'bg-error-container/30 text-error'
-              : 'bg-primary-container/20 text-primary'
+              ? 'bg-rose-100 text-rose-600'
+              : 'bg-powder-blue/30 text-deep-navy'
           }`}>
             <span className="material-symbols-outlined text-[24px]">
               {variant === 'danger' ? 'warning' : 'verified_user'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-headline-sm text-base text-on-surface font-semibold truncate">
+            <h3 className="text-base text-deep-navy font-bold truncate">
               {title}
             </h3>
-            <p className="font-body-md text-body-md text-on-surface-variant text-xs mt-1 leading-relaxed">
+            <p className="text-xs text-muted-slate mt-1 leading-relaxed">
               {message}
             </p>
           </div>
@@ -61,29 +61,29 @@ export default function ConfirmDialog({
 
         {/* Structured context details if present */}
         {details && (
-          <div className="mb-4 bg-surface-container-low rounded-lg p-3 border border-surface-container-high/50 font-mono text-xs space-y-1.5">
+          <div className="mb-4 bg-white/70 rounded-2xl p-3.5 border border-white/80 font-mono text-xs space-y-1.5 shadow-xs">
             {details.incidentId && (
-              <div className="flex justify-between items-center text-outline">
+              <div className="flex justify-between items-center text-muted-slate">
                 <span>Incident ID:</span>
-                <span className="text-secondary font-semibold">{details.incidentId}</span>
+                <span className="text-deep-navy font-bold">{details.incidentId}</span>
               </div>
             )}
             {details.patchId && (
-              <div className="flex justify-between items-center text-outline">
+              <div className="flex justify-between items-center text-muted-slate">
                 <span>Patch ID:</span>
-                <span className="text-primary font-semibold">{details.patchId}</span>
+                <span className="text-tertiary font-bold">{details.patchId}</span>
               </div>
             )}
             {details.service && (
-              <div className="flex justify-between items-center text-outline">
+              <div className="flex justify-between items-center text-muted-slate">
                 <span>Target Service:</span>
-                <span className="text-on-surface">{details.service}</span>
+                <span className="text-deep-navy">{details.service}</span>
               </div>
             )}
             {details.file && (
-              <div className="flex justify-between items-center text-outline">
+              <div className="flex justify-between items-center text-muted-slate">
                 <span>Affected File:</span>
-                <span className="text-on-surface truncate max-w-[260px]">{details.file}</span>
+                <span className="text-deep-navy truncate max-w-[260px]">{details.file}</span>
               </div>
             )}
           </div>
@@ -91,28 +91,28 @@ export default function ConfirmDialog({
 
         {/* Warning Callout */}
         {warning && (
-          <div className="mb-4 p-2.5 rounded-lg bg-error-container/15 border border-error/30 text-on-error-container flex items-start gap-2 text-xs">
-            <span className="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">warning</span>
-            <span>{warning}</span>
+          <div className="mb-4 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 flex items-start gap-2.5 text-xs shadow-xs">
+            <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
+            <span className="leading-relaxed">{warning}</span>
           </div>
         )}
 
         {/* Reason selector if applicable (e.g. rejection) */}
         {reasons && reasons.length > 0 && (
-          <div className="mb-3">
-            <label className="font-mono text-[11px] text-outline block mb-1.5 uppercase tracking-wider">
+          <div className="mb-3.5">
+            <label className="font-mono text-[11px] text-muted-slate block mb-1.5 uppercase tracking-wider font-semibold">
               Primary Reason:
             </label>
-            <div className="grid grid-cols-2 gap-1.5 mb-2">
+            <div className="grid grid-cols-2 gap-2 mb-2">
               {reasons.map((r) => (
                 <button
                   type="button"
                   key={r}
                   onClick={() => setSelectedReason(r)}
-                  className={`px-2.5 py-1.5 text-left rounded-md text-xs font-mono transition-colors border ${
+                  className={`px-3 py-2 text-left rounded-xl text-xs font-mono transition-all border ${
                     selectedReason === r
-                      ? 'bg-error-container/30 border-error/50 text-on-error-container font-semibold'
-                      : 'bg-surface-container-low border-surface-container-high/40 text-on-surface-variant hover:bg-surface-container-high'
+                      ? 'bg-rose-100 border-rose-300 text-rose-900 font-bold shadow-xs'
+                      : 'bg-white/70 border-white/80 text-muted-slate hover:bg-white'
                   }`}
                 >
                   {r}
@@ -124,8 +124,8 @@ export default function ConfirmDialog({
 
         {/* Notes textarea */}
         {(requiresNote || reasons) && (
-          <div className="my-space-md">
-            <label className="font-mono text-[11px] text-outline block mb-1.5 uppercase tracking-wider">
+          <div className="my-4">
+            <label className="font-mono text-[11px] text-muted-slate block mb-1.5 uppercase tracking-wider font-semibold">
               {reasons ? 'Additional Comments / Rationale:' : 'Audit Note / Rationale:'}
             </label>
             <textarea
@@ -133,29 +133,30 @@ export default function ConfirmDialog({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={notePlaceholder}
-              className="w-full bg-surface-container-lowest text-on-surface font-body-sm text-xs p-2.5 rounded-lg border border-surface-container-high focus:outline-none focus:border-secondary transition-colors"
+              className="w-full bg-white/90 text-deep-navy text-xs p-3 rounded-2xl border border-white/80 focus:outline-none focus:ring-2 focus:ring-powder-blue transition-all shadow-xs"
             />
           </div>
         )}
 
-        <div className="flex items-center justify-end gap-space-sm pt-space-sm border-t border-surface-container-high/40 font-mono text-xs">
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-muted-slate/15 font-sans text-xs">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface border border-surface-container-highest/30 transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-white/80 hover:bg-white text-muted-slate hover:text-deep-navy border border-white/80 transition-colors font-semibold"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className={`px-4 py-2 rounded font-semibold text-on-primary transition-all active:scale-95 shadow-md ${
+            className={`px-5 py-2.5 rounded-xl font-semibold transition-all active:scale-95 shadow-md flex items-center gap-1.5 ${
               variant === 'danger'
-                ? 'bg-error hover:bg-error/90'
-                : 'bg-primary-container hover:bg-primary-container/90'
+                ? 'bg-error hover:bg-error/90 text-white'
+                : 'bg-deep-navy hover:bg-deep-navy/90 text-white'
             }`}
           >
-            {confirmLabel}
+            <span>{confirmLabel}</span>
+            <span className="material-symbols-outlined text-[16px]">check</span>
           </button>
         </div>
       </div>

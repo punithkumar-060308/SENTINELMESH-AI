@@ -76,47 +76,54 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
   };
 
   return (
-    <div className="flex flex-col w-full gap-space-lg">
+    <div className="flex flex-col w-full gap-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#CBD5E1]">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="material-symbols-outlined text-secondary text-2xl">healing</span>
-            <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
-              Autonomous Patch Review & Approval
-            </h1>
+          <div className="flex flex-wrap items-center gap-2 mb-2 font-mono text-xs">
+            <span className="px-3 py-0.5 rounded-full bg-powder-blue/40 text-[#17233B] font-bold uppercase tracking-wider border border-powder-blue/60 shadow-xs">
+              Zero-Trust Verification
+            </span>
+            <span className="text-[#94A3B8]">|</span>
             <DemoBadge label="Human-in-the-Loop Gate" />
           </div>
-          <p className="text-xs text-on-surface-variant font-mono mt-1">
-            Zero-Trust Human Gate: Inspect synthesized patches, diffs, and AST validations before containerized execution.
+          <h1 className="text-3xl sm:text-4xl font-black text-[#17233B] tracking-tight">
+            Autonomous Patch Review & Approval
+          </h1>
+          <p className="mt-2 text-sm text-[#334155] font-medium leading-relaxed max-w-3xl">
+            Zero-Trust Human Gate: Inspect synthesized patches, AST diffs, and verification guarantees before sandbox execution.
           </p>
         </div>
 
         {/* Tab switch */}
-        <div className="flex items-center bg-surface-container-high p-1 rounded-lg border border-surface-container-highest/40 font-mono text-xs">
+        <div className="flex items-center glass-panel p-1.5 rounded-full border border-white shadow-xs font-mono text-xs self-start lg:self-auto">
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 font-bold ${
               activeTab === 'pending'
-                ? 'bg-secondary-container text-on-secondary-container font-semibold shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-[#17233B] text-white shadow-sm'
+                : 'text-[#475569] hover:text-[#17233B]'
             }`}
           >
             <span>Pending Review</span>
-            <span className="w-5 h-5 rounded-full bg-surface-container-lowest text-[10px] flex items-center justify-center font-bold">
+            <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
+              activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-slate-200 text-[#475569]'
+            }`}>
               {pendingPatches.length}
             </span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-full transition-all flex items-center gap-2 font-bold ${
               activeTab === 'history'
-                ? 'bg-secondary-container text-on-secondary-container font-semibold shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
+                ? 'bg-[#17233B] text-white shadow-sm'
+                : 'text-[#475569] hover:text-[#17233B]'
             }`}
           >
             <span>Audit History</span>
-            <span className="w-5 h-5 rounded-full bg-surface-container-lowest text-[10px] flex items-center justify-center font-bold">
+            <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
+              activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-slate-200 text-[#475569]'
+            }`}>
               {historyPatches.length}
             </span>
           </button>
@@ -124,26 +131,26 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
       </div>
 
       {/* Main Grid: List on Left, Detail & Diff on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: Patches List (4 cols) */}
-        <div className="lg:col-span-4 flex flex-col gap-space-sm">
-          <div className="flex items-center justify-between text-xs font-mono text-outline px-1">
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          <div className="flex items-center justify-between text-xs font-bold font-mono text-[#475569] uppercase tracking-wider px-1">
             <span>{activeTab === 'pending' ? 'PROPOSED CANDIDATES' : 'HISTORICAL DECISIONS'}</span>
-            <span>{displayedList.length} total</span>
+            <span className="bg-white/80 px-2 py-0.5 rounded-full border border-white text-[11px]">{displayedList.length} total</span>
           </div>
 
           {displayedList.length === 0 ? (
-            <div className="bg-surface-container rounded-xl p-8 border border-surface-container-high/40 text-center font-mono">
-              <span className="material-symbols-outlined text-4xl text-outline mb-2">task_alt</span>
-              <p className="text-sm font-semibold text-on-surface">Queue is Clear</p>
-              <p className="text-xs text-outline mt-1">
+            <div className="glass-panel rounded-3xl p-8 border border-white text-center font-mono shadow-glass">
+              <span className="material-symbols-outlined text-4xl text-[#94A3B8] mb-2">task_alt</span>
+              <p className="text-sm font-bold text-[#17233B]">Queue is Clear</p>
+              <p className="text-xs text-[#64748B] mt-1">
                 {activeTab === 'pending'
                   ? 'No patches currently awaiting human approval.'
                   : 'No past patch decisions recorded yet.'}
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {displayedList.map((inc) => {
                 const isSelected = activeIncident && activeIncident.id === inc.id;
                 const patchId = `PAT-${inc.id.replace('INC-', '')}`;
@@ -152,27 +159,29 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
                   <div
                     key={inc.id}
                     onClick={() => setSelectedIncidentId(inc.id)}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-surface-container-high border-secondary/50 shadow-md ring-1 ring-secondary/20'
-                        : 'bg-surface-container hover:bg-surface-container-high/70 border-surface-container-high/40'
+                        ? 'bg-white border-2 border-[#8DB9F0] shadow-glass ring-2 ring-[#8DB9F0]/30'
+                        : 'glass-panel glass-panel-hover border-white'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5 font-mono text-xs">
-                        <span className="font-semibold text-secondary">{inc.id}</span>
-                        <span className="text-outline">·</span>
-                        <span className="text-primary font-bold text-[11px]">{patchId}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <span className="font-bold text-[#17233B]">{inc.id}</span>
+                        <span className="text-[#94A3B8]">·</span>
+                        <span className="text-[#2563EB] bg-powder-blue/25 px-2 py-0.5 rounded-md font-bold text-[11px]">
+                          {patchId}
+                        </span>
                       </div>
                       <StatusBadge status={inc.status} />
                     </div>
 
-                    <div className="font-sans font-medium text-xs text-on-surface line-clamp-1 mb-1">
+                    <div className="font-sans font-semibold text-xs text-[#17233B] line-clamp-1 mb-2">
                       {inc.title}
                     </div>
 
-                    <div className="flex items-center justify-between font-mono text-[11px] text-outline mt-2 pt-2 border-t border-surface-container-high/40">
-                      <span className="truncate max-w-[160px]">{inc.application}</span>
+                    <div className="flex items-center justify-between font-mono text-[11px] text-[#64748B] pt-2 border-t border-slate-100">
+                      <span className="truncate max-w-[160px] font-medium">{inc.application}</span>
                       <span>{inc.detectedTime || 'Active'}</span>
                     </div>
                   </div>
@@ -183,39 +192,39 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
         </div>
 
         {/* Right Column: Active Patch Inspection & Diff (8 cols) */}
-        <div className="lg:col-span-8 flex flex-col gap-space-md">
+        <div className="lg:col-span-8 flex flex-col gap-6">
           {activeIncident ? (
-            <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-xl flex flex-col gap-space-md">
+            <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white shadow-glass flex flex-col gap-6">
               {/* Top Banner: Incident & Patch Info */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2 font-mono text-xs">
-                    <span className="px-2 py-0.5 rounded bg-surface-container-high text-secondary font-semibold border border-surface-container-highest">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-[#CBD5E1]">
+                <div className="flex flex-col gap-2 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                    <span className="px-2.5 py-1 rounded-lg bg-white text-[#17233B] font-bold border border-[#CBD5E1] shadow-xs">
                       {activeIncident.id}
                     </span>
-                    <span className="px-2 py-0.5 rounded bg-primary-container/20 text-primary font-semibold border border-primary/20">
+                    <span className="px-2.5 py-1 rounded-lg bg-powder-blue/30 text-[#17233B] font-bold border border-powder-blue/50">
                       PAT-{activeIncident.id.replace('INC-', '')}
                     </span>
                     <StatusBadge status={activeIncident.status} />
                   </div>
-                  <h2 className="font-headline-sm text-base text-on-surface font-semibold mt-1">
+                  <h2 className="text-xl sm:text-2xl font-black text-[#17233B] tracking-tight">
                     {activeIncident.title}
                   </h2>
-                  <div className="text-xs font-mono text-outline flex flex-wrap items-center gap-2">
-                    <span>App: <strong className="text-on-surface">{activeIncident.application}</strong></span>
+                  <div className="text-xs font-mono text-[#64748B] flex flex-wrap items-center gap-2">
+                    <span>App: <strong className="text-[#17233B]">{activeIncident.application}</strong></span>
                     <span>·</span>
-                    <span>Target: <code className="break-all text-secondary">{activeIncident.sourceFile || 'src/main/Handler.java:142'}</code></span>
+                    <span>Target: <code className="break-all text-[#2563EB] bg-blue-50/80 px-2 py-0.5 rounded border border-blue-100 font-semibold">{activeIncident.sourceFile || 'src/main/Handler.java:142'}</code></span>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-3 shrink-0">
                   {activeIncident.status === 'awaiting_approval' || activeIncident.status === 'investigating' || activeIncident.status === 'detected' ? (
                     <>
                       <button
                         onClick={() => handleOpenReject(activeIncident)}
                         disabled={loading}
-                        className="px-3 py-1.5 rounded bg-surface-container-high hover:bg-error-container hover:text-on-error-container text-error font-mono text-xs font-medium transition-all border border-surface-container-highest flex items-center gap-1"
+                        className="px-4 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-all border border-rose-200 shadow-xs flex items-center gap-1.5 active:scale-95"
                       >
                         <span className="material-symbols-outlined text-[16px]">close</span>
                         <span>Reject</span>
@@ -223,15 +232,15 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
                       <button
                         onClick={() => handleOpenApprove(activeIncident)}
                         disabled={loading}
-                        className="px-4 py-1.5 rounded bg-primary-container text-on-primary font-mono text-xs font-semibold hover:opacity-95 shadow-md flex items-center gap-1.5 transition-all"
+                        className="px-5 py-2.5 rounded-full bg-[#17233B] hover:bg-[#1e2f4f] text-white font-bold text-xs shadow-md flex items-center gap-1.5 transition-all active:scale-95"
                       >
-                        <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                        <span className="material-symbols-outlined text-[16px] text-emerald-400">play_circle</span>
                         <span>Approve & Verify</span>
                       </button>
                     </>
                   ) : (
                     <div className="flex items-center gap-2 font-mono text-xs">
-                      <span className="px-3 py-1 rounded bg-surface-container-high text-outline border border-surface-container-highest">
+                      <span className="px-3.5 py-1.5 rounded-full bg-white text-[#17233B] font-bold border border-[#CBD5E1] shadow-xs">
                         Decision Recorded ({activeIncident.status.toUpperCase()})
                       </span>
                     </div>
@@ -240,110 +249,110 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
               </div>
 
               {/* Workflow stage clarification banner */}
-              <div className="bg-surface-container-low rounded-lg p-3 border border-secondary/20 flex items-start gap-2.5 text-xs font-mono">
-                <span className="material-symbols-outlined text-secondary text-[20px] shrink-0">info</span>
-                <div className="text-on-surface-variant">
-                  <strong className="text-on-surface">Lifecycle Integrity:</strong> Approval triggers controlled execution inside an ephemeral Docker container. Independent verifier tests must report 100% pass before recovery is declared.
+              <div className="rounded-2xl p-4 bg-[#E9E8F8]/70 border border-[#8DB9F0]/40 flex items-start gap-3 text-xs shadow-xs">
+                <span className="material-symbols-outlined text-[#2563EB] text-[22px] shrink-0 mt-0.5">info</span>
+                <div className="text-[#334155] leading-relaxed">
+                  <strong className="text-[#17233B] font-bold">Lifecycle Integrity:</strong> Approval triggers controlled execution inside an ephemeral Docker container. Independent verifier tests must report 100% pass before recovery is declared.
                 </div>
               </div>
 
               {/* Repair Explanation & Root Cause */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-space-sm font-mono text-xs">
-                <div className="bg-surface-container-low rounded-lg p-3 border border-surface-container-high/40 flex flex-col gap-1">
-                  <span className="text-outline uppercase text-[10px] font-bold">Identified Root Cause</span>
-                  <p className="text-on-surface-variant text-xs leading-relaxed font-sans mt-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="bg-white/85 rounded-2xl p-4 border border-white shadow-xs flex flex-col gap-1.5">
+                  <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider">Identified Root Cause</span>
+                  <p className="text-[#17233B] text-xs leading-relaxed font-medium mt-1">
                     {activeIncident.rootCause || "Missing defensive null check on payload evaluation, triggering fatal exception during high-volume webhook ingestion."}
                   </p>
                 </div>
-                <div className="bg-surface-container-low rounded-lg p-3 border border-surface-container-high/40 flex flex-col gap-1">
-                  <span className="text-outline uppercase text-[10px] font-bold">Repair Agent Strategy</span>
-                  <p className="text-on-surface-variant text-xs leading-relaxed font-sans mt-1">
+                <div className="bg-white/85 rounded-2xl p-4 border border-white shadow-xs flex flex-col gap-1.5">
+                  <span className="text-[#64748B] uppercase text-[10px] font-bold tracking-wider">Repair Agent Strategy</span>
+                  <p className="text-[#17233B] text-xs leading-relaxed font-medium mt-1">
                     Synthesized an explicit null-guard boundary with fallback to guest handling, safeguarding against malformed or missing customer objects.
                   </p>
                 </div>
               </div>
 
-              {/* Code Diff Viewer */}
-              <div className="bg-surface-container-lowest rounded-xl border border-surface-container-high/50 overflow-hidden font-mono shadow-md">
-                <div className="bg-surface-container-high px-3 py-2 flex items-center justify-between text-xs border-b border-surface-container-highest/40">
+              {/* Code Diff Viewer - Soft light clean frosted code editor */}
+              <div className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden font-mono text-xs">
+                <div className="bg-slate-50/90 px-4 py-3 flex items-center justify-between border-b border-slate-200 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-primary">code</span>
-                    <span className="text-on-surface font-semibold">Diff Viewer</span>
-                    <span className="text-outline">|</span>
-                    <span className="text-outline text-[11px]">{activeIncident.sourceFile || "StripeWebhookHandler.java:142"}</span>
+                    <span className="material-symbols-outlined text-[18px] text-[#2563EB]">code</span>
+                    <span className="text-[#17233B] font-bold">Diff Viewer</span>
+                    <span className="text-[#94A3B8]">|</span>
+                    <span className="text-[#64748B] font-semibold text-[11px]">{activeIncident.sourceFile || "StripeWebhookHandler.java:142"}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[11px]">
-                    <span className="text-error font-bold">-2 lines</span>
-                    <span className="text-tertiary font-bold">+5 lines</span>
+                  <div className="flex items-center gap-2 text-[11px] font-bold">
+                    <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">-2 lines</span>
+                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">+5 lines</span>
                   </div>
                 </div>
 
-                <div className="p-3 text-[12px] overflow-x-auto space-y-0.5">
-                  <div className="flex text-outline py-0.5">
-                    <span className="w-10 select-none text-right pr-3 text-outline/60 text-[11px]">139</span>
-                    <span className="text-on-surface-variant">public void processEvent(StripeWebhookPayload payload) {'{'}</span>
+                <div className="p-4 text-[12px] overflow-x-auto space-y-1 bg-white">
+                  <div className="flex text-[#64748B] py-0.5 font-medium">
+                    <span className="w-10 select-none text-right pr-3 text-[#94A3B8] text-[11px]">139</span>
+                    <span className="text-[#334155]">public void processEvent(StripeWebhookPayload payload) {'{'}</span>
                   </div>
-                  <div className="flex text-outline py-0.5">
-                    <span className="w-10 select-none text-right pr-3 text-outline/60 text-[11px]">140</span>
-                    <span className="text-on-surface-variant">    Objects.requireNonNull(payload, "Payload cannot be null");</span>
+                  <div className="flex text-[#64748B] py-0.5 font-medium">
+                    <span className="w-10 select-none text-right pr-3 text-[#94A3B8] text-[11px]">140</span>
+                    <span className="text-[#334155]">    Objects.requireNonNull(payload, "Payload cannot be null");</span>
                   </div>
-                  <div className="flex bg-error-container/20 text-on-error-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-error font-bold text-[11px]">141</span>
-                    <span className="font-semibold"><span className="text-error font-bold mr-2">-</span>    String customerId = payload.getCustomer().getId();</span>
+                  <div className="flex bg-rose-50/80 text-rose-900 py-1 rounded border-l-4 border-rose-500">
+                    <span className="w-10 select-none text-right pr-3 text-rose-600 font-bold text-[11px]">141</span>
+                    <span className="font-semibold"><span className="text-rose-600 font-bold mr-2">-</span>    String customerId = payload.getCustomer().getId();</span>
                   </div>
-                  <div className="flex bg-error-container/20 text-on-error-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-error font-bold text-[11px]">142</span>
-                    <span className="font-semibold"><span className="text-error font-bold mr-2">-</span>    billingService.recordTransaction(customerId, payload.getAmount());</span>
+                  <div className="flex bg-rose-50/80 text-rose-900 py-1 rounded border-l-4 border-rose-500">
+                    <span className="w-10 select-none text-right pr-3 text-rose-600 font-bold text-[11px]">142</span>
+                    <span className="font-semibold"><span className="text-rose-600 font-bold mr-2">-</span>    billingService.recordTransaction(customerId, payload.getAmount());</span>
                   </div>
-                  <div className="flex bg-tertiary-container/20 text-on-tertiary-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-tertiary font-bold text-[11px]">141</span>
-                    <span className="font-semibold"><span className="text-tertiary font-bold mr-2">+</span>    // Defensive null-guard for guest checkout invoices</span>
+                  <div className="flex bg-emerald-50/80 text-emerald-950 py-1 rounded border-l-4 border-emerald-500">
+                    <span className="w-10 select-none text-right pr-3 text-emerald-700 font-bold text-[11px]">141</span>
+                    <span className="font-semibold"><span className="text-emerald-700 font-bold mr-2">+</span>    // Defensive null-guard for guest checkout invoices</span>
                   </div>
-                  <div className="flex bg-tertiary-container/20 text-on-tertiary-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-tertiary font-bold text-[11px]">142</span>
-                    <span className="font-semibold"><span className="text-tertiary font-bold mr-2">+</span>    String customerId = (payload.getCustomer() != null)</span>
+                  <div className="flex bg-emerald-50/80 text-emerald-950 py-1 rounded border-l-4 border-emerald-500">
+                    <span className="w-10 select-none text-right pr-3 text-emerald-700 font-bold text-[11px]">142</span>
+                    <span className="font-semibold"><span className="text-emerald-700 font-bold mr-2">+</span>    String customerId = (payload.getCustomer() != null)</span>
                   </div>
-                  <div className="flex bg-tertiary-container/20 text-on-tertiary-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-tertiary font-bold text-[11px]">143</span>
-                    <span className="font-semibold"><span className="text-tertiary font-bold mr-2">+</span>        ? payload.getCustomer().getId()</span>
+                  <div className="flex bg-emerald-50/80 text-emerald-950 py-1 rounded border-l-4 border-emerald-500">
+                    <span className="w-10 select-none text-right pr-3 text-emerald-700 font-bold text-[11px]">143</span>
+                    <span className="font-semibold"><span className="text-emerald-700 font-bold mr-2">+</span>        ? payload.getCustomer().getId()</span>
                   </div>
-                  <div className="flex bg-tertiary-container/20 text-on-tertiary-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-tertiary font-bold text-[11px]">144</span>
-                    <span className="font-semibold"><span className="text-tertiary font-bold mr-2">+</span>        : "GUEST_CHECKOUT_" + payload.getInvoiceId();</span>
+                  <div className="flex bg-emerald-50/80 text-emerald-950 py-1 rounded border-l-4 border-emerald-500">
+                    <span className="w-10 select-none text-right pr-3 text-emerald-700 font-bold text-[11px]">144</span>
+                    <span className="font-semibold"><span className="text-emerald-700 font-bold mr-2">+</span>        : "GUEST_CHECKOUT_" + payload.getInvoiceId();</span>
                   </div>
-                  <div className="flex bg-tertiary-container/20 text-on-tertiary-container py-0.5 rounded">
-                    <span className="w-10 select-none text-right pr-3 text-tertiary font-bold text-[11px]">145</span>
-                    <span className="font-semibold"><span className="text-tertiary font-bold mr-2">+</span>    billingService.recordTransaction(customerId, payload.getAmount());</span>
+                  <div className="flex bg-emerald-50/80 text-emerald-950 py-1 rounded border-l-4 border-emerald-500">
+                    <span className="w-10 select-none text-right pr-3 text-emerald-700 font-bold text-[11px]">145</span>
+                    <span className="font-semibold"><span className="text-emerald-700 font-bold mr-2">+</span>    billingService.recordTransaction(customerId, payload.getAmount());</span>
                   </div>
-                  <div className="flex text-outline py-0.5">
-                    <span className="w-10 select-none text-right pr-3 text-outline/60 text-[11px]">146</span>
-                    <span className="text-on-surface-variant">{'}'}</span>
+                  <div className="flex text-[#64748B] py-0.5 font-medium">
+                    <span className="w-10 select-none text-right pr-3 text-[#94A3B8] text-[11px]">146</span>
+                    <span className="text-[#334155]">{'}'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Safety & Risk Matrix */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
-                <div className="bg-surface-container-low p-2 rounded-lg border border-surface-container-high/40">
-                  <span className="text-outline text-[10px] block">Syntactic Risk</span>
-                  <span className="text-tertiary font-bold">0.2% (Minimal)</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-white shadow-xs">
+                  <span className="text-[#64748B] text-[10px] uppercase font-bold tracking-wider block">Syntactic Risk</span>
+                  <span className="text-emerald-700 font-black text-sm mt-1 block">0.2% (Minimal)</span>
                 </div>
-                <div className="bg-surface-container-low p-2 rounded-lg border border-surface-container-high/40">
-                  <span className="text-outline text-[10px] block">Database Schema</span>
-                  <span className="text-tertiary font-bold">Zero DB Ops</span>
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-white shadow-xs">
+                  <span className="text-[#64748B] text-[10px] uppercase font-bold tracking-wider block">Database Schema</span>
+                  <span className="text-emerald-700 font-black text-sm mt-1 block">Zero DB Ops</span>
                 </div>
-                <div className="bg-surface-container-low p-2 rounded-lg border border-surface-container-high/40">
-                  <span className="text-outline text-[10px] block">Regression Baseline</span>
-                  <span className="text-secondary font-bold">Master Frozen</span>
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-white shadow-xs">
+                  <span className="text-[#64748B] text-[10px] uppercase font-bold tracking-wider block">Regression Baseline</span>
+                  <span className="text-[#2563EB] font-black text-sm mt-1 block">Master Frozen</span>
                 </div>
-                <div className="bg-surface-container-low p-2 rounded-lg border border-surface-container-high/40">
-                  <span className="text-outline text-[10px] block">Automated Rollback</span>
-                  <span className="text-on-surface font-bold">&lt; 15 seconds</span>
+                <div className="bg-white/80 p-3.5 rounded-2xl border border-white shadow-xs">
+                  <span className="text-[#64748B] text-[10px] uppercase font-bold tracking-wider block">Automated Rollback</span>
+                  <span className="text-[#17233B] font-black text-sm mt-1 block">&lt; 15 seconds</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-surface-container rounded-xl p-12 text-center text-outline font-mono border border-surface-container-high/40">
+            <div className="glass-panel rounded-3xl p-12 text-center text-[#64748B] font-mono border border-white shadow-glass">
               Select an incident patch from the left column to inspect diffs and telemetry.
             </div>
           )}

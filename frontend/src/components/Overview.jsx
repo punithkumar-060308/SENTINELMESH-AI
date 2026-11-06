@@ -15,456 +15,421 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
     }, 600);
   };
 
-  const criticalCount = incidents.filter(i => (i.severity || '').toLowerCase().includes('0') || (i.severity || '').toLowerCase() === 'critical').length;
-  const highCount = incidents.filter(i => (i.severity || '').toLowerCase().includes('1') || (i.severity || '').toLowerCase() === 'high').length;
-  const recoveredCount = incidents.filter(i => i.status === 'recovered').length;
+  const activeIncidents = incidents.filter(i => i.status !== 'recovered' && i.status !== 'rejected');
+  const investigatingCount = incidents.filter(i => i.status === 'investigating' || i.status === 'detected').length;
   const pendingCount = incidents.filter(i => i.status === 'awaiting_approval' || i.status === 'Patch Proposed').length;
+  const recoveredCount = incidents.filter(i => i.status === 'recovered').length;
 
   return (
-    <div className="flex flex-col w-full gap-space-lg">
-      {/* Top Greeting & Header Actions Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-mono text-xs">
-              Telemetry Node // US-East-1
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-            <span className="font-label-sm text-label-sm text-outline font-mono text-xs">
-              Cluster-Alpha-7
-            </span>
-            <DemoBadge />
-          </div>
-          <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold tracking-tight">
-            Good morning, Elena
-          </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant text-sm">
-            Here's what's happening across your monitored applications and multi-agent meshes.
-          </p>
-        </div>
+    <div className="flex flex-col w-full gap-8">
+      {/* SECTION 1: HERO DASHBOARD (Section 3.C of new_design.md) */}
+      <div className="relative p-8 sm:p-10 rounded-3xl glass-panel shadow-glass overflow-hidden border border-white">
+        {/* Ambient atmospheric glows */}
+        <div className="absolute -right-20 -top-20 w-96 h-96 rounded-full bg-powder-blue/35 blur-3xl pointer-events-none"></div>
+        <div className="absolute right-1/3 -bottom-24 w-80 h-80 rounded-full bg-sunset-peach/30 blur-3xl pointer-events-none"></div>
 
-        <div className="flex flex-wrap items-center gap-space-sm self-start lg:self-center">
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-1.5 px-3 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors font-body-sm text-xs shadow-sm border border-surface-container-highest/40"
-          >
-            <span className={`material-symbols-outlined text-[16px] text-secondary ${isRefreshing ? 'animate-spin' : ''}`}>
-              sync
-            </span>
-            <span>Refresh Telemetry</span>
-            <span className="font-mono text-outline ml-1 text-[11px]">
-              {lastRefreshed}
-            </span>
-          </button>
-          <button
-            onClick={onSimulateClick}
-            className="flex items-center gap-2 px-4 py-2 rounded bg-primary-container text-on-primary font-body-sm text-xs font-semibold hover:opacity-95 shadow-md shadow-primary-container/20 transition-all active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-[18px]">bolt</span>
-            <span>Simulate Incident</span>
-          </button>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white text-[#17233B] border border-[#CBD5E1] shadow-xs">
+                Autonomous SRE Mesh
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-sunset-peach"></span>
+              <span className="text-xs font-mono font-semibold text-[#475569]">
+                US-East-1 · Swarm v4.8
+              </span>
+              <DemoBadge />
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#17233B] tracking-tight leading-tight">
+              Your AI Command Center
+            </h1>
+
+            <p className="mt-3 text-sm sm:text-base text-[#334155] font-medium leading-relaxed">
+              Detect incidents, investigate root causes, repair safely, and verify recovery with intelligent multi-agent automation.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 mt-6">
+              <button
+                onClick={onSimulateClick}
+                className="px-5 py-2.5 rounded-full bg-[#17233B] text-white text-xs font-bold hover:bg-[#17233B]/90 transition-all shadow-md active:scale-95 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px] text-sunset-peach">bolt</span>
+                <span>Simulate Incident</span>
+              </button>
+
+              <button
+                onClick={() => onNavigateTab('patch-review')}
+                className="px-5 py-2.5 rounded-full bg-white hover:bg-slate-50 text-[#17233B] text-xs font-bold border border-[#CBD5E1] transition-all shadow-xs flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px] text-[#2563EB]">call_merge</span>
+                <span>Review Patches</span>
+                {pendingCount > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-powder-blue text-[#17233B] text-[10px] font-bold flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={handleRefresh}
+                className="px-4 py-2.5 rounded-full bg-white/80 hover:bg-white text-[#334155] hover:text-[#17233B] text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs border border-white"
+                title="Refresh Telemetry Stream"
+              >
+                <span className={`material-symbols-outlined text-[16px] text-[#17233B] ${isRefreshing ? 'animate-spin' : ''}`}>
+                  sync
+                </span>
+                <span className="text-[11px] font-mono font-bold text-[#17233B]">{lastRefreshed}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick System Quorum Widget */}
+          <div className="p-5 rounded-2xl bg-white/95 border border-white shadow-sm flex flex-col gap-3 min-w-[250px]">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-[#17233B]">Mesh Reliability Quorum</span>
+              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                99.98% SLO
+              </span>
+            </div>
+            <div className="space-y-1.5 text-xs text-[#334155] font-medium">
+              <div className="flex justify-between">
+                <span>Autonomous Healing:</span>
+                <span className="font-bold text-[#17233B]">88.4%</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Zero-Drift Baseline:</span>
+                <span className="font-bold text-[#17233B]">Guaranteed</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Human Gate Quorum:</span>
+                <span className="font-bold text-[#17233B]">Enforced (P0/P1)</span>
+              </div>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div className="bg-gradient-to-r from-powder-blue to-sunset-peach h-2 rounded-full" style={{ width: '88.4%' }}></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Four Top Statistic Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-md">
-        {/* Card 1: Total Incidents */}
-        <div className="p-space-md rounded-lg bg-surface-container-low hover:bg-surface-container transition-all shadow-sm border border-surface-container-high/40 flex flex-col justify-between relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-colors pointer-events-none"></div>
+      {/* SECTION 2: INCIDENT OVERVIEW CARDS (Section 3.D of new_design.md) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Active Incidents */}
+        <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between relative overflow-hidden group border border-white">
           <div className="flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="font-mono text-outline uppercase tracking-wider text-[11px]">
-                Total Incidents
-              </span>
-              <span className="font-headline-xl text-headline-xl text-on-surface font-bold mt-1 tracking-tight">
-                {incidents.length + 20}
-              </span>
-            </div>
-            <span className="px-2 py-0.5 rounded-full bg-surface-container-highest text-secondary font-mono text-[11px] font-medium flex items-center gap-1">
-              <span className="material-symbols-outlined text-[12px]">trending_up</span>
-              +2 this week
-            </span>
-          </div>
-          <div className="flex items-center justify-between mt-space-md pt-space-xs text-on-surface-variant border-t border-surface-container-high/30">
-            <span className="font-body-sm text-body-sm text-[12px]">Across 14 microservices</span>
-            <span className="material-symbols-outlined text-[18px] text-outline">lan</span>
-          </div>
-        </div>
-
-        {/* Card 2: Active Incidents */}
-        <div className="p-space-md rounded-lg bg-surface-container-low hover:bg-surface-container transition-all shadow-sm border border-surface-container-high/40 flex flex-col justify-between relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-error/15 blur-2xl pointer-events-none"></div>
-          <div className="flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="font-mono text-error uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-error animate-ping"></span>
+            <div>
+              <span className="text-xs font-bold text-[#475569] uppercase tracking-wider block">
                 Active Incidents
               </span>
-              <span className="font-headline-xl text-headline-xl text-on-surface font-bold mt-1 tracking-tight">
-                {incidents.filter(i => i.status !== 'recovered').length}
+              <span className="text-3xl font-black text-[#17233B] mt-1 block">
+                {activeIncidents.length}
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-error-container/30 text-error font-mono text-[11px] font-semibold flex items-center gap-1">
-              <span className="material-symbols-outlined text-[12px]">search_activity</span>
-              Active triage
-            </span>
+            <div className="w-11 h-11 rounded-2xl bg-sunset-peach/35 text-[#17233B] border border-sunset-peach/50 flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-[24px]">warning</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-space-md pt-space-xs text-on-surface-variant border-t border-surface-container-high/30">
-            <span className="font-body-sm text-body-sm text-on-surface text-[12px]">
-              <span className="text-error font-semibold">{criticalCount} Critical</span>, {highCount} High
+          <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+            <span className="text-[#475569] font-medium">Prioritized queue</span>
+            <span className="flex items-center gap-1 font-bold text-[#C2410C]">
+              <span className="w-2 h-2 rounded-full bg-sunset-peach animate-ping"></span>
+              Live Triaging
             </span>
-            <span className="material-symbols-outlined text-[18px] text-error">priority_high</span>
           </div>
         </div>
 
-        {/* Card 3: Successfully Recovered */}
-        <div className="p-space-md rounded-lg bg-surface-container-low hover:bg-surface-container transition-all shadow-sm border border-surface-container-high/40 flex flex-col justify-between relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-tertiary/10 blur-2xl pointer-events-none"></div>
+        {/* Card 2: Investigating */}
+        <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between relative overflow-hidden group border border-white">
           <div className="flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="font-mono text-tertiary uppercase tracking-wider text-[11px]">
-                Successfully Recovered
+            <div>
+              <span className="text-xs font-bold text-[#475569] uppercase tracking-wider block">
+                Investigating
               </span>
-              <span className="font-headline-xl text-headline-xl text-on-surface font-bold mt-1 tracking-tight">
-                {recoveredCount + 17}
+              <span className="text-3xl font-black text-[#17233B] mt-1 block">
+                {investigatingCount}
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary font-mono text-[11px] font-semibold flex items-center gap-1">
-              <span className="material-symbols-outlined text-[12px]">speed</span>
-              75.0% MTTR reduction
-            </span>
+            <div className="w-11 h-11 rounded-2xl bg-powder-blue/40 text-[#17233B] border border-powder-blue/60 flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-[24px]">psychology</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-space-md pt-space-xs text-on-surface-variant border-t border-surface-container-high/30">
-            <span className="font-body-sm text-body-sm text-[12px]">Auto-verified zero regression</span>
-            <span className="material-symbols-outlined text-[18px] text-tertiary">task_alt</span>
+          <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+            <span className="text-[#475569] font-medium">Causal trees active</span>
+            <span className="font-bold text-[#1D4ED8]">DeepForensics</span>
           </div>
         </div>
 
-        {/* Card 4: Pending Approval */}
-        <div className="p-space-md rounded-lg bg-surface-container-low hover:bg-surface-container transition-all shadow-sm border border-surface-container-high/40 flex flex-col justify-between relative overflow-hidden group">
-          <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-secondary/15 blur-2xl pointer-events-none"></div>
+        {/* Card 3: Pending Approval */}
+        <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between relative overflow-hidden group border border-white">
           <div className="flex items-start justify-between">
-            <div className="flex flex-col">
-              <span className="font-mono text-secondary uppercase tracking-wider text-[11px]">
+            <div>
+              <span className="text-xs font-bold text-[#475569] uppercase tracking-wider block">
                 Pending Approval
               </span>
-              <span className="font-headline-xl text-headline-xl text-on-surface font-bold mt-1 tracking-tight">
+              <span className="text-3xl font-black text-[#17233B] mt-1 block">
                 {pendingCount}
               </span>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-secondary-container/30 text-secondary font-mono text-[11px] font-semibold flex items-center gap-1">
-              <span className="material-symbols-outlined text-[12px]">pending_actions</span>
-              Human sign-off
-            </span>
+            <div className="w-11 h-11 rounded-2xl bg-soft-lavender text-[#17233B] flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+              <span className="material-symbols-outlined text-[24px]">gavel</span>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-space-md pt-space-xs text-on-surface-variant border-t border-surface-container-high/30">
-            <span className="font-body-sm text-body-sm text-[12px]">Code patches awaiting review</span>
-            <span className="material-symbols-outlined text-[18px] text-secondary">approval</span>
+          <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+            <span className="text-[#475569] font-medium">Human Gate sign-off</span>
+            <button
+              onClick={() => onNavigateTab('patch-review')}
+              className="font-bold text-[#17233B] hover:underline"
+            >
+              Inspect &rarr;
+            </button>
+          </div>
+        </div>
+
+        {/* Card 4: Verified Recoveries */}
+        <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between relative overflow-hidden group border border-white">
+          <div className="flex items-start justify-between">
+            <div>
+              <span className="text-xs font-bold text-[#475569] uppercase tracking-wider block">
+                Verified Recoveries
+              </span>
+              <span className="text-3xl font-black text-[#17233B] mt-1 block">
+                {recoveredCount + 18}
+              </span>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center justify-center shadow-xs">
+              <span className="material-symbols-outlined text-[24px]">verified</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-xs">
+            <span className="text-[#475569] font-medium">0 Regressions</span>
+            <span className="font-bold text-emerald-800">100% Suites Passed</span>
           </div>
         </div>
       </div>
 
-      {/* Middle Visual Layout: Chart (8 cols) + AI Swarm Panel (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
-        {/* Left: Trend Chart & Resolution Metrics */}
-        <div className="lg:col-span-8 flex flex-col gap-space-md">
-          <div className="p-space-md rounded-lg bg-surface-container-low border border-surface-container-high/40 shadow-sm flex flex-col gap-space-sm relative">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 pb-2 border-b border-surface-container-high/30">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
-                    Incident Ingress vs Autonomous Resolution
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-surface-container-high text-tertiary font-mono text-[10px]">
-                    24h Rolling
-                  </span>
-                </div>
-                <p className="font-body-sm text-body-sm text-on-surface-variant text-[12px]">
-                  Sample telemetry ingress tracked against AI swarm autonomous self-healing
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4 font-mono text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-error"></span>
-                  <span className="text-on-surface-variant">Ingress Events</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
-                  <span className="text-on-surface-variant">Auto-Healed</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Inline SVG Multi-Line Trend Chart */}
-            <div className="w-full h-60 relative bg-surface-container-lowest/80 rounded border border-surface-container-high/30 p-2 flex items-center justify-center overflow-hidden">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 760 220">
-                <defs>
-                  <linearGradient id="ingressGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#ffb4ab" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="#ffb4ab" stopOpacity="0.0" />
-                  </linearGradient>
-                  <linearGradient id="healedGrad" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#4edea3" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#4edea3" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                <line stroke="#262a36" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="20" y2="20" />
-                <line stroke="#262a36" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="70" y2="70" />
-                <line stroke="#262a36" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="120" y2="120" />
-                <line stroke="#262a36" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="170" y2="170" />
-
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" textAnchor="end" x="30" y="24">12</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" textAnchor="end" x="30" y="74">8</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" textAnchor="end" x="30" y="124">4</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" textAnchor="end" x="30" y="174">0</text>
-
-                <path d="M 50 150 Q 120 130 180 80 T 320 60 T 450 110 T 580 40 T 730 90 L 730 190 L 50 190 Z" fill="url(#ingressGrad)" />
-                <path d="M 50 150 Q 120 130 180 80 T 320 60 T 450 110 T 580 40 T 730 90" fill="none" stroke="#ffb4ab" strokeLinecap="round" strokeWidth="2.5" />
-
-                <path d="M 50 165 Q 120 155 180 100 T 320 70 T 450 120 T 580 48 T 730 95 L 730 190 L 50 190 Z" fill="url(#healedGrad)" />
-                <path d="M 50 165 Q 120 155 180 100 T 320 70 T 450 120 T 580 48 T 730 95" fill="none" stroke="#4edea3" strokeLinecap="round" strokeWidth="2.5" />
-
-                <circle cx="180" cy="100" fill="#0f131e" r="4" stroke="#4edea3" strokeWidth="2.5" />
-                <circle cx="320" cy="70" fill="#0f131e" r="4" stroke="#4edea3" strokeWidth="2.5" />
-                <circle cx="450" cy="120" fill="#0f131e" r="4" stroke="#4edea3" strokeWidth="2.5" />
-                <circle cx="580" cy="48" fill="#4edea3" r="5" stroke="#0f131e" strokeWidth="2" className="animate-pulse" />
-                <circle cx="730" cy="95" fill="#0f131e" r="4" stroke="#4edea3" strokeWidth="2.5" />
-
-                <rect fill="#262a36" height="22" rx="3" width="130" x="515" y="8" stroke="#4edea3" strokeWidth="0.5" />
-                <text fill="#4edea3" fontFamily="JetBrains Mono" fontSize="10" fontWeight="600" textAnchor="middle" x="580" y="23">Swarm Peak: 98% Recovery</text>
-
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" x="60" y="205">00:00</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" x="200" y="205">06:00</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" x="350" y="205">12:00</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" x="500" y="205">18:00</text>
-                <text fill="#908fa0" fontFamily="JetBrains Mono" fontSize="10" x="680" y="205">NOW</text>
-              </svg>
-            </div>
-
-            {/* Severity Distribution Breakdown Bar */}
-            <div className="flex flex-col gap-2 pt-2">
-              <div className="flex items-center justify-between text-body-sm font-body-sm">
-                <span className="text-on-surface font-medium text-xs">Incident Severity Distribution</span>
-                <span className="font-mono text-outline text-[11px]">Total 24 incidents analyzed</span>
-              </div>
-              <div className="h-2.5 w-full rounded-full bg-surface-container-highest overflow-hidden flex shadow-inner">
-                <div className="bg-error h-full" style={{ width: '16.6%' }} title="Critical" />
-                <div className="bg-secondary-container h-full" style={{ width: '29.2%' }} title="High" />
-                <div className="bg-primary h-full" style={{ width: '37.5%' }} title="Medium" />
-                <div className="bg-outline-variant h-full" style={{ width: '16.7%' }} title="Low" />
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-xs">
-                <div className="flex items-center justify-between p-2 rounded bg-surface-container-high/40 border border-surface-container-highest/20">
-                  <span className="flex items-center gap-1.5 text-on-surface">
-                    <span className="w-2 h-2 rounded-full bg-error"></span>Critical
-                  </span>
-                  <span className="font-bold text-on-surface">{criticalCount + 3}</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-surface-container-high/40 border border-surface-container-highest/20">
-                  <span className="flex items-center gap-1.5 text-on-surface">
-                    <span className="w-2 h-2 rounded-full bg-secondary-container"></span>High
-                  </span>
-                  <span className="font-bold text-on-surface">{highCount + 5}</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-surface-container-high/40 border border-surface-container-highest/20">
-                  <span className="flex items-center gap-1.5 text-on-surface">
-                    <span className="w-2 h-2 rounded-full bg-primary"></span>Medium
-                  </span>
-                  <span className="font-bold text-on-surface">9</span>
-                </div>
-                <div className="flex items-center justify-between p-2 rounded bg-surface-container-high/40 border border-surface-container-highest/20">
-                  <span className="flex items-center gap-1.5 text-on-surface">
-                    <span className="w-2 h-2 rounded-full bg-outline-variant"></span>Low
-                  </span>
-                  <span className="font-bold text-on-surface">4</span>
-                </div>
-              </div>
-            </div>
+      {/* SECTION 3: MULTI-AGENT SWARM SECTION (Section 3.E of new_design.md) */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <h2 className="text-lg font-extrabold text-[#17233B]">Autonomous Multi-Agent Fleet</h2>
+            <p className="text-xs text-[#475569] font-medium">Four specialized intelligent agents collaborating on continuous reliability.</p>
           </div>
-        </div>
-
-        {/* Right: Swarm Orchestrator Panel */}
-        <div className="lg:col-span-4 flex flex-col gap-space-md">
-          <div className="p-space-md rounded-lg bg-surface-container-low border border-surface-container-high/40 shadow-sm flex flex-col gap-space-sm">
-            <div className="flex items-center justify-between pb-1 border-b border-surface-container-high/30">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-tertiary">smart_toy</span>
-                <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">Swarm Orchestrator</span>
-              </div>
-              <span className="font-mono text-tertiary flex items-center gap-1 text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>Live
-              </span>
-            </div>
-            <p className="font-body-sm text-on-surface-variant text-[12px]">
-              4 autonomous agents collaborating via consensus pipeline
-            </p>
-
-            <div className="flex flex-col gap-2 pt-1 font-mono text-xs">
-              <div 
-                onClick={() => onNavigateTab('agents')} 
-                className="p-2.5 rounded bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1 cursor-pointer border border-surface-container-highest/20"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-tertiary"></span>
-                    <span className="font-semibold text-on-surface">Observer Agent</span>
-                  </div>
-                  <span className="text-tertiary bg-tertiary-container/20 px-1.5 py-0.5 rounded text-[10px]">Running</span>
-                </div>
-                <p className="text-on-surface-variant pl-4 text-[11px]">24/24 services polled · Ping: 42ms</p>
-              </div>
-
-              <div 
-                onClick={() => onNavigateTab('agents')} 
-                className="p-2.5 rounded bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1 cursor-pointer border border-surface-container-highest/20"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-                    </span>
-                    <span className="font-semibold text-on-surface">Investigator Agent</span>
-                  </div>
-                  <span className="text-secondary bg-secondary-container/20 px-1.5 py-0.5 rounded text-[10px]">INC-8921</span>
-                </div>
-                <p className="text-on-surface-variant pl-4 text-[11px]">Root cause isolation & AST trace</p>
-              </div>
-
-              <div 
-                onClick={() => onNavigateTab('agents')} 
-                className="p-2.5 rounded bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1 cursor-pointer border border-surface-container-highest/20"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary-container"></span>
-                    <span className="font-semibold text-on-surface">Repair Agent</span>
-                  </div>
-                  <span className="text-primary bg-primary-container/20 px-1.5 py-0.5 rounded text-[10px]">PR Ready</span>
-                </div>
-                <p className="text-on-surface-variant pl-4 text-[11px]">Patch pending human review</p>
-              </div>
-
-              <div 
-                onClick={() => onNavigateTab('agents')} 
-                className="p-2.5 rounded bg-surface-container hover:bg-surface-container-high transition-colors flex flex-col gap-1 cursor-pointer border border-surface-container-highest/20"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-tertiary"></span>
-                    <span className="font-semibold text-on-surface">Verifier Agent</span>
-                  </div>
-                  <span className="text-tertiary bg-tertiary-container/20 px-1.5 py-0.5 rounded text-[10px]">Ready</span>
-                </div>
-                <p className="text-on-surface-variant pl-4 text-[11px]">Isolated sandbox dry-run pre-warmed</p>
-              </div>
-            </div>
-
-            {/* System Health Telemetry Summary */}
-            <div className="pt-space-sm mt-space-xs flex flex-col gap-2 bg-surface-container-lowest/60 p-2.5 rounded border border-surface-container-high/40 font-mono">
-              <span className="text-outline uppercase text-[10px]">System Health (Simulated)</span>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                <div className="flex flex-col">
-                  <span className="text-secondary font-bold">14ms</span>
-                  <span className="text-on-surface-variant text-[10px]">Latency</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-tertiary font-bold">0.08%</span>
-                  <span className="text-on-surface-variant text-[10px]">Error Rate</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-primary font-bold">99.98%</span>
-                  <span className="text-on-surface-variant text-[10px]">Cluster Up</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Full-Width Section: Real-Time Incident Stream Table */}
-      <div className="p-space-md rounded-lg bg-surface-container-low border border-surface-container-high/40 shadow-sm flex flex-col gap-space-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-surface-container-high/30">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
-                Real-Time Incident Stream
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-error-container/30 text-error font-mono text-[11px] font-bold">
-                {incidents.filter(i => i.status !== 'recovered').length} Requiring Attention
-              </span>
-            </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant text-[12px]">
-              Traces captured by SentinelMesh Autonomous Observers
-            </p>
-          </div>
-
           <button
-            onClick={() => onNavigateTab('incidents')}
-            className="px-2.5 py-1.5 rounded bg-surface-container hover:bg-surface-container-high text-on-surface font-mono text-xs flex items-center gap-1 transition-colors border border-surface-container-highest/30 self-start sm:self-auto"
+            onClick={() => onNavigateTab('agents')}
+            className="text-xs font-bold text-[#17233B] hover:underline flex items-center gap-1"
           >
-            <span className="material-symbols-outlined text-[16px]">filter_list</span>
-            <span>View All Incidents</span>
+            <span>View Fleet Telemetry</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
           </button>
         </div>
 
-        {/* Table Container */}
-        <div className="overflow-x-auto w-full">
-          <table className="w-full min-w-[720px] text-left font-body-sm text-xs">
-            <thead>
-              <tr className="bg-surface-container-lowest/80 text-on-surface-variant font-mono uppercase text-[11px] border-b border-surface-container-high/40">
-                <th className="py-2.5 px-3">INCIDENT ID</th>
-                <th className="py-2.5 px-3">APPLICATION</th>
-                <th className="py-2.5 px-3">DESCRIPTION</th>
-                <th className="py-2.5 px-3">SEVERITY</th>
-                <th className="py-2.5 px-3">STATUS</th>
-                <th className="py-2.5 px-3">DETECTED</th>
-                <th className="py-2.5 px-3 text-right">ACTION</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container-high/40">
-              {incidents.map((inc) => (
-                <tr key={inc.id} className="hover:bg-surface-container/60 transition-colors group">
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <span 
-                      onClick={() => onSelectIncident(inc)}
-                      className="font-mono text-secondary font-bold cursor-pointer hover:underline"
-                    >
-                      {inc.id}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap font-mono text-on-surface">
-                    <span className="px-2 py-1 rounded bg-surface-container-highest border border-surface-container-high">
-                      {inc.application || inc.app}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 max-w-xs truncate text-on-surface text-[12px]" title={inc.title}>
-                    {inc.title}
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <SeverityBadge severity={inc.severity} />
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap">
-                    <StatusBadge status={inc.status} />
-                  </td>
-                  <td className="py-3 px-3 whitespace-nowrap font-mono text-on-surface-variant text-[11px]">
-                    {inc.detectedTime}
-                  </td>
-                  <td className="py-3 px-3 text-right whitespace-nowrap">
-                    <button
-                      onClick={() => onSelectIncident(inc)}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded bg-primary-container text-on-primary font-body-sm text-xs font-medium hover:opacity-90 transition-opacity shadow-sm"
-                    >
-                      <span>Investigate</span>
-                      <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+          {/* Agent 1: Observer */}
+          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
+                  <span className="material-symbols-outlined text-[20px]">visibility</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  LIVE
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-[#17233B]">Observer Agent</h3>
+              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
+                Detects anomalies, tracks Prometheus metric drifts, and aggregates distributed traces.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+              <span>Telemetry: 1.4k ev/s</span>
+              <span>2s ago</span>
+            </div>
+          </div>
+
+          {/* Agent 2: Investigator */}
+          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-sunset-peach/40 text-[#17233B] flex items-center justify-center border border-sunset-peach/60 shadow-xs">
+                  <span className="material-symbols-outlined text-[20px]">manage_search</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sunset-peach/30 text-[#17233B] border border-sunset-peach/50">
+                  ACTIVE
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-[#17233B]">Investigator Agent</h3>
+              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
+                Analyzes evidence, correlates commits with git blame, and constructs causal failure trees.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+              <span>Gemini 1.5 Pro</span>
+              <span>12s ago</span>
+            </div>
+          </div>
+
+          {/* Agent 3: Repair */}
+          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-powder-blue/40 text-[#17233B] flex items-center justify-center border border-powder-blue/60 shadow-xs">
+                  <span className="material-symbols-outlined text-[20px]">healing</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-powder-blue/40 text-[#17233B] border border-powder-blue/60">
+                  READY
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-[#17233B]">Repair Agent</h3>
+              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
+                Synthesizes minimal defensive AST patches adhering strictly to language invariants.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+              <span>Diff Engine v2</span>
+              <span>1m ago</span>
+            </div>
+          </div>
+
+          {/* Agent 4: Verifier */}
+          <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between border border-white">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-10 h-10 rounded-2xl bg-soft-lavender text-[#17233B] flex items-center justify-center border border-[#CBD5E1] shadow-xs">
+                  <span className="material-symbols-outlined text-[20px]">science</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                  READY
+                </span>
+              </div>
+              <h3 className="font-bold text-sm text-[#17233B]">Verifier Agent</h3>
+              <p className="text-xs text-[#334155] font-medium mt-1.5 leading-relaxed">
+                Runs independent regression and synthetic edge suites inside isolated testcontainers.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-[#E2E8F0] flex items-center justify-between text-[11px] font-mono text-[#1E293B] font-semibold">
+              <span>Docker Rootless</span>
+              <span>3m ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 4: TELEMETRY TREND CHART & INCIDENTS (Section 3.F of new_design.md) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Telemetry Trend & Severity Bar (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="p-6 sm:p-7 rounded-3xl glass-panel flex flex-col gap-5 border border-white">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-base text-[#17233B]">Autonomous Healing Invariant</h3>
+                <p className="text-xs text-[#475569] font-medium">Comparing real-time ingress alert spikes vs verified recoveries.</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-mono font-bold">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-sunset-peach"></span>
+                  <span className="text-[#C2410C]">Ingress</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-powder-blue"></span>
+                  <span className="text-[#1D4ED8]">Auto-Healed</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SVG Trend Chart */}
+            <div className="w-full h-56 relative bg-white/70 rounded-2xl border border-white p-2 flex items-center justify-center overflow-hidden">
+              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 760 220">
+                <defs>
+                  <linearGradient id="ingressGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#F5B69E" stopOpacity="0.45" />
+                    <stop offset="100%" stopColor="#F5B69E" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="healedGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#8DB9F0" stopOpacity="0.5" />
+                    <stop offset="100%" stopColor="#8DB9F0" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                <line stroke="rgba(71, 85, 105, 0.2)" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="30" y2="30" />
+                <line stroke="rgba(71, 85, 105, 0.2)" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="80" y2="80" />
+                <line stroke="rgba(71, 85, 105, 0.2)" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="130" y2="130" />
+                <line stroke="rgba(71, 85, 105, 0.2)" strokeDasharray="3,3" strokeWidth="1" x1="40" x2="740" y1="180" y2="180" />
+
+                <path d="M 50 150 Q 120 130 180 80 T 320 60 T 450 110 T 580 40 T 730 90 L 730 190 L 50 190 Z" fill="url(#ingressGrad)" />
+                <path d="M 50 150 Q 120 130 180 80 T 320 60 T 450 110 T 580 40 T 730 90" fill="none" stroke="#F5B69E" strokeLinecap="round" strokeWidth="3" />
+
+                <path d="M 50 165 Q 120 155 180 100 T 320 70 T 450 120 T 580 48 T 730 95 L 730 190 L 50 190 Z" fill="url(#healedGrad)" />
+                <path d="M 50 165 Q 120 155 180 100 T 320 70 T 450 120 T 580 48 T 730 95" fill="none" stroke="#8DB9F0" strokeLinecap="round" strokeWidth="3" />
+
+                <circle cx="180" cy="100" fill="#FFFFFF" r="5" stroke="#2563EB" strokeWidth="3" />
+                <circle cx="320" cy="70" fill="#FFFFFF" r="5" stroke="#2563EB" strokeWidth="3" />
+                <circle cx="450" cy="120" fill="#FFFFFF" r="5" stroke="#2563EB" strokeWidth="3" />
+                <circle cx="580" cy="48" fill="#2563EB" r="6" stroke="#FFFFFF" strokeWidth="2.5" />
+                <circle cx="730" cy="95" fill="#FFFFFF" r="5" stroke="#2563EB" strokeWidth="3" />
+
+                <rect fill="#17233B" height="26" rx="13" width="150" x="505" y="6" />
+                <text fill="#FFFFFF" fontFamily="Inter" fontSize="11" fontWeight="700" textAnchor="middle" x="580" y="23">98% Verified Auto-Heal</text>
+              </svg>
+            </div>
+
+            {/* Severity Distribution */}
+            <div className="flex flex-col gap-2 pt-2 border-t border-[#E2E8F0]">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-[#17233B]">Severity Breakdown</span>
+                <span className="font-mono font-bold text-[#475569] text-[11px]">{incidents.length} total monitored</span>
+              </div>
+              <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                <div className="bg-rose-500 h-full" style={{ width: '25%' }} title="Critical" />
+                <div className="bg-sunset-peach h-full" style={{ width: '35%' }} title="High" />
+                <div className="bg-powder-blue h-full" style={{ width: '25%' }} title="Medium" />
+                <div className="bg-slate-400 h-full" style={{ width: '15%' }} title="Low" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Recent Incidents Cards (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-black text-base text-[#17233B]">Recent Incidents</h3>
+            <button
+              onClick={() => onNavigateTab('incidents')}
+              className="text-xs font-bold text-[#17233B] hover:underline"
+            >
+              Console &rarr;
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {incidents.slice(0, 4).map((inc) => (
+              <div
+                key={inc.id}
+                onClick={() => onSelectIncident(inc)}
+                className="p-4 rounded-3xl glass-panel glass-panel-hover cursor-pointer flex flex-col gap-2 group border border-white"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs text-[#17233B]">{inc.id}</span>
+                    <SeverityBadge severity={inc.severity} short />
+                  </div>
+                  <StatusBadge status={inc.status} />
+                </div>
+
+                <div className="text-xs font-bold text-[#17233B] line-clamp-1 group-hover:text-[#17233B]/80">
+                  {inc.title}
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] font-mono text-[#334155] font-semibold pt-2 border-t border-[#E2E8F0]">
+                  <span className="truncate max-w-[160px]">{inc.application}</span>
+                  <span className="flex items-center gap-1 font-sans font-bold text-[#17233B] group-hover:translate-x-0.5 transition-transform">
+                    <span>Investigate</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

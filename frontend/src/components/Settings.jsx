@@ -69,251 +69,263 @@ export default function Settings({ showToast }) {
   };
 
   return (
-    <div className="flex flex-col w-full gap-space-lg font-sans">
+    <div className="flex flex-col w-full gap-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-[#CBD5E1]">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="material-symbols-outlined text-secondary text-2xl">settings</span>
-            <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
-              Platform Settings & System Health
-            </h1>
+          <div className="flex flex-wrap items-center gap-2 mb-2 font-mono text-xs">
+            <span className="px-3 py-0.5 rounded-full bg-powder-blue/40 text-[#17233B] font-bold uppercase tracking-wider border border-powder-blue/60 shadow-xs">
+              System Topology
+            </span>
+            <span className="text-[#94A3B8]">|</span>
             <DemoBadge label="System Governance" />
           </div>
-          <p className="text-xs text-on-surface-variant font-mono mt-1">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#17233B] tracking-tight">
+            Platform Settings & System Health
+          </h1>
+          <p className="mt-2 text-sm text-[#334155] font-medium leading-relaxed max-w-3xl">
             Global orchestration topology, connection health, SRE human approval quorums, and masked integration status.
           </p>
         </div>
 
         <button
           onClick={handleSavePreferences}
-          className="px-4 py-2 rounded bg-primary-container text-on-primary font-mono text-xs font-semibold hover:opacity-95 shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#17233B] text-white font-bold hover:bg-[#1e2f4f] text-xs shadow-md transition-all active:scale-95 self-start lg:self-auto"
         >
-          <span className="material-symbols-outlined text-[16px]">save</span>
+          <span className="material-symbols-outlined text-[18px]">save</span>
           <span>Save Changes</span>
         </button>
       </div>
 
       {/* Security Banner */}
-      <div className="bg-surface-container-low rounded-xl p-3.5 border border-surface-container-high/60 flex items-start gap-3 text-xs font-mono">
-        <span className="material-symbols-outlined text-tertiary text-xl shrink-0 mt-0.5">lock</span>
+      <div className="rounded-2xl p-4 bg-[#E9E8F8]/70 border border-[#8DB9F0]/40 flex items-start gap-3 text-xs shadow-xs">
+        <span className="material-symbols-outlined text-emerald-700 text-2xl shrink-0 mt-0.5">lock</span>
         <div>
-          <div className="text-on-surface font-semibold">Zero-Secret Browser Isolation</div>
-          <div className="text-on-surface-variant leading-relaxed font-sans mt-0.5">
+          <div className="text-[#17233B] font-bold text-sm">Zero-Secret Browser Isolation</div>
+          <div className="text-[#334155] leading-relaxed font-sans mt-0.5">
             Client applications never receive raw API keys or database master credentials. All upstream credentials remain encapsulated within the secure backend container vault.
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-space-lg">
+      {/* 2x2 Infrastructure Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Section 1: Application Information */}
-        <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-md flex flex-col gap-3 font-mono text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-surface-container-high/40">
-            <div className="flex items-center gap-2 font-sans font-semibold text-on-surface text-sm">
-              <span className="material-symbols-outlined text-secondary text-[18px]">dns</span>
+        <div className="glass-panel rounded-3xl p-6 sm:p-7 border border-white shadow-glass flex flex-col gap-4 font-mono text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5 font-sans font-bold text-[#17233B] text-sm">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+                <span className="material-symbols-outlined text-[#2563EB] text-[18px]">dns</span>
+              </div>
               <span>Application Information</span>
             </div>
-            <span className="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary text-[10px] font-bold">
+            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-300">
               OPERATIONAL
             </span>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-outline">Platform Name:</span>
-              <span className="text-on-surface font-semibold">{appInfo.name}</span>
+          <div className="divide-y divide-slate-100">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Platform Name:</span>
+              <span className="text-[#17233B] font-bold">{appInfo.name}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Version / Release:</span>
-              <span className="text-secondary font-semibold">{appInfo.version}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Version / Release:</span>
+              <span className="text-[#2563EB] font-bold">{appInfo.version}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Environment Target:</span>
-              <span className="text-on-surface">{appInfo.environment}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Environment Target:</span>
+              <span className="text-[#17233B] font-semibold">{appInfo.environment}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Reported SRE Uptime:</span>
-              <span className="text-tertiary font-bold">{appInfo.uptime}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Reported SRE Uptime:</span>
+              <span className="text-emerald-700 font-black">{appInfo.uptime}</span>
             </div>
           </div>
         </div>
 
         {/* Section 2: AI Provider & Model Status */}
-        <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-md flex flex-col gap-3 font-mono text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-surface-container-high/40">
-            <div className="flex items-center gap-2 font-sans font-semibold text-on-surface text-sm">
-              <span className="material-symbols-outlined text-primary text-[18px]">psychology</span>
+        <div className="glass-panel rounded-3xl p-6 sm:p-7 border border-white shadow-glass flex flex-col gap-4 font-mono text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5 font-sans font-bold text-[#17233B] text-sm">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+                <span className="material-symbols-outlined text-sunset-peach text-[18px]">psychology</span>
+              </div>
               <span>AI Provider & Neural Orchestration</span>
             </div>
-            <span className="px-2 py-0.5 rounded bg-primary-container/20 text-primary text-[10px] font-bold">
+            <span className="px-3 py-1 rounded-full bg-blue-50 text-[#2563EB] text-[10px] font-bold border border-blue-200">
               CONNECTED
             </span>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-outline">Active Provider:</span>
-              <span className="text-on-surface font-semibold">{aiProvider.provider}</span>
+          <div className="divide-y divide-slate-100">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Active Provider:</span>
+              <span className="text-[#17233B] font-bold">{aiProvider.provider}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Orchestrator Model:</span>
-              <span className="text-secondary font-semibold">{aiProvider.activeOrchestratorModel}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Orchestrator Model:</span>
+              <span className="text-[#2563EB] font-bold">{aiProvider.activeOrchestratorModel}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Context Window:</span>
-              <span className="text-on-surface">{aiProvider.contextWindow}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Context Window:</span>
+              <span className="text-[#17233B] font-semibold">{aiProvider.contextWindow}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">API Key Credentials:</span>
-              <span className="text-outline font-mono">AIzaSyB3...•••••••• (Vault Masked)</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">API Key Credentials:</span>
+              <span className="text-[#64748B] font-semibold">AIzaSyB3...•••••••• (Vault Masked)</span>
             </div>
           </div>
         </div>
 
         {/* Section 3: Database & Ledger Status */}
-        <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-md flex flex-col gap-3 font-mono text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-surface-container-high/40">
-            <div className="flex items-center gap-2 font-sans font-semibold text-on-surface text-sm">
-              <span className="material-symbols-outlined text-tertiary text-[18px]">database</span>
+        <div className="glass-panel rounded-3xl p-6 sm:p-7 border border-white shadow-glass flex flex-col gap-4 font-mono text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5 font-sans font-bold text-[#17233B] text-sm">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+                <span className="material-symbols-outlined text-emerald-600 text-[18px]">database</span>
+              </div>
               <span>Telemetry Data Store & Audit Ledger</span>
             </div>
-            <span className="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary text-[10px] font-bold">
+            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-300">
               SYNCHRONIZED
             </span>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-outline">Database Engine:</span>
-              <span className="text-on-surface font-semibold">{db.engine}</span>
+          <div className="divide-y divide-slate-100">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Database Engine:</span>
+              <span className="text-[#17233B] font-bold">{db.engine}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Connection Pool:</span>
-              <span className="text-tertiary font-semibold">{db.poolStatus}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Connection Pool:</span>
+              <span className="text-emerald-700 font-bold">{db.poolStatus}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Cryptographic Attestation:</span>
-              <span className="text-on-surface">{db.immutableLedger}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Cryptographic Attestation:</span>
+              <span className="text-[#17233B] font-semibold">{db.immutableLedger}</span>
             </div>
           </div>
         </div>
 
         {/* Section 4: Ephemeral Sandbox Runtime */}
-        <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-md flex flex-col gap-3 font-mono text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-surface-container-high/40">
-            <div className="flex items-center gap-2 font-sans font-semibold text-on-surface text-sm">
-              <span className="material-symbols-outlined text-secondary text-[18px]">view_in_ar</span>
+        <div className="glass-panel rounded-3xl p-6 sm:p-7 border border-white shadow-glass flex flex-col gap-4 font-mono text-xs">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
+            <div className="flex items-center gap-2.5 font-sans font-bold text-[#17233B] text-sm">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center shadow-xs border border-[#CBD5E1]">
+                <span className="material-symbols-outlined text-[#2563EB] text-[18px]">view_in_ar</span>
+              </div>
               <span>Isolated Sandbox Runtime</span>
             </div>
-            <span className="px-2 py-0.5 rounded bg-secondary-container/20 text-secondary text-[10px] font-bold">
+            <span className="px-3 py-1 rounded-full bg-blue-50 text-[#2563EB] text-[10px] font-bold border border-blue-200">
               READY
             </span>
           </div>
 
-          <div className="space-y-2.5">
-            <div className="flex justify-between items-center py-1">
-              <span className="text-outline">Container Runtime:</span>
-              <span className="text-on-surface font-semibold">{sandbox.runtime}</span>
+          <div className="divide-y divide-slate-100">
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Container Runtime:</span>
+              <span className="text-[#17233B] font-bold">{sandbox.runtime}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Isolation Policy:</span>
-              <span className="text-on-surface">{sandbox.isolationLevel}</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Isolation Policy:</span>
+              <span className="text-[#17233B] font-semibold">{sandbox.isolationLevel}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-t border-surface-container-high/30">
-              <span className="text-outline">Pre-Warmed Test Pods:</span>
-              <span className="text-secondary font-semibold">{sandbox.preWarmedContainers} pods idle</span>
+            <div className="flex justify-between items-center py-2.5">
+              <span className="text-[#64748B] font-medium">Pre-Warmed Test Pods:</span>
+              <span className="text-[#2563EB] font-bold">{sandbox.preWarmedContainers} pods idle</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Section 5: Governance & Notification Preferences */}
-      <div className="bg-surface-container rounded-xl p-space-md border border-surface-container-high/50 shadow-md flex flex-col gap-space-md font-sans">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-surface-container-high/40">
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white shadow-glass flex flex-col gap-6 font-sans">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200/80">
           <div>
-            <h3 className="font-semibold text-sm text-on-surface">SRE Autonomous Governance & Notification Preferences</h3>
-            <p className="text-xs text-on-surface-variant font-mono mt-0.5">Control automated patch application thresholds and incident dispatch channels.</p>
+            <h3 className="font-black text-base text-[#17233B]">SRE Autonomous Governance & Notification Preferences</h3>
+            <p className="text-xs text-[#64748B] font-medium mt-0.5">Control automated patch application thresholds and incident dispatch channels.</p>
           </div>
           <button
             onClick={handleTestAlert}
-            className="px-3 py-1.5 rounded bg-surface-container-high hover:bg-surface-container-highest text-on-surface border border-surface-container-highest font-mono text-xs transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+            className="px-4 py-2 rounded-full bg-white hover:bg-slate-50 text-[#17233B] border border-[#CBD5E1] font-bold text-xs transition-colors flex items-center gap-2 self-start sm:self-auto shadow-xs active:scale-95"
           >
-            <span className="material-symbols-outlined text-[16px]">notifications_active</span>
+            <span className="material-symbols-outlined text-[16px] text-amber-500">notifications_active</span>
             <span>Send Test Alert</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md font-mono text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
           {/* Governance Rules */}
-          <div className="bg-surface-container-low rounded-xl p-4 border border-surface-container-high/40 space-y-4">
-            <span className="font-bold text-on-surface text-xs uppercase tracking-wider block font-sans">
+          <div className="bg-white/80 rounded-2xl p-5 border border-white shadow-xs space-y-4">
+            <span className="font-black text-[#17233B] text-xs uppercase tracking-wider block font-sans">
               Human Sign-off Policy
             </span>
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-on-surface text-xs font-sans">Human Gate for P0 / P1 Incidents</div>
-                <div className="text-outline text-[11px]">Strict digital signature required before sandbox promotes to prod</div>
+                <div className="font-bold text-[#17233B] text-xs font-sans">Human Gate for P0 / P1 Incidents</div>
+                <div className="text-[#64748B] text-[11px] font-medium mt-0.5">Strict digital signature required before sandbox promotes to prod</div>
               </div>
-              <input type="checkbox" defaultChecked disabled className="accent-primary w-4 h-4 cursor-not-allowed opacity-80" />
+              <input type="checkbox" defaultChecked disabled className="accent-[#17233B] w-4 h-4 cursor-not-allowed opacity-80" />
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-surface-container-high/30">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <div>
-                <div className="font-semibold text-on-surface text-xs font-sans">Autonomous Healing for P2 / P3</div>
-                <div className="text-outline text-[11px]">Allow automated rollouts when 100% test suites pass in sandbox</div>
+                <div className="font-bold text-[#17233B] text-xs font-sans">Autonomous Healing for P2 / P3</div>
+                <div className="text-[#64748B] text-[11px] font-medium mt-0.5">Allow automated rollouts when 100% test suites pass in sandbox</div>
               </div>
               <input
                 type="checkbox"
                 checked={autoP2Healing}
                 onChange={(e) => setAutoP2Healing(e.target.checked)}
-                className="accent-secondary w-4 h-4 cursor-pointer"
+                className="accent-[#2563EB] w-4 h-4 cursor-pointer"
               />
             </div>
           </div>
 
           {/* Notification Channels */}
-          <div className="bg-surface-container-low rounded-xl p-4 border border-surface-container-high/40 space-y-4">
-            <span className="font-bold text-on-surface text-xs uppercase tracking-wider block font-sans">
+          <div className="bg-white/80 rounded-2xl p-5 border border-white shadow-xs space-y-4">
+            <span className="font-black text-[#17233B] text-xs uppercase tracking-wider block font-sans">
               Alert Integrations
             </span>
 
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-on-surface text-xs font-sans">Slack Webhook Alerts</div>
-                <div className="text-outline text-[11px]">#sre-critical-incidents (Configured)</div>
+                <div className="font-bold text-[#17233B] text-xs font-sans">Slack Webhook Alerts</div>
+                <div className="text-[#64748B] text-[11px] font-medium mt-0.5">#sre-critical-incidents (Configured)</div>
               </div>
               <input
                 type="checkbox"
                 checked={slackAlerts}
                 onChange={(e) => setSlackAlerts(e.target.checked)}
-                className="accent-secondary w-4 h-4 cursor-pointer"
+                className="accent-[#2563EB] w-4 h-4 cursor-pointer"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-surface-container-high/30">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <div>
-                <div className="font-semibold text-on-surface text-xs font-sans">PagerDuty On-Call Escalation</div>
-                <div className="text-outline text-[11px]">High Urgency Policy: SRE Primary Escalation</div>
+                <div className="font-bold text-[#17233B] text-xs font-sans">PagerDuty On-Call Escalation</div>
+                <div className="text-[#64748B] text-[11px] font-medium mt-0.5">High Urgency Policy: SRE Primary Escalation</div>
               </div>
               <input
                 type="checkbox"
                 checked={pagerdutyAlerts}
                 onChange={(e) => setPagerdutyAlerts(e.target.checked)}
-                className="accent-secondary w-4 h-4 cursor-pointer"
+                className="accent-[#2563EB] w-4 h-4 cursor-pointer"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-surface-container-high/30">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
               <div>
-                <div className="font-semibold text-on-surface text-xs font-sans">Email Digest</div>
-                <div className="text-outline text-[11px]">Daily executive incident summary report</div>
+                <div className="font-bold text-[#17233B] text-xs font-sans">Email Digest</div>
+                <div className="text-[#64748B] text-[11px] font-medium mt-0.5">Daily executive incident summary report</div>
               </div>
               <input
                 type="checkbox"
                 checked={emailAlerts}
                 onChange={(e) => setEmailAlerts(e.target.checked)}
-                className="accent-secondary w-4 h-4 cursor-pointer"
+                className="accent-[#2563EB] w-4 h-4 cursor-pointer"
               />
             </div>
           </div>

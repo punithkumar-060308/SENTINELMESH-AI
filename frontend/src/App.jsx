@@ -10,6 +10,7 @@ import VerificationView from './components/VerificationView';
 import AuditLogs from './components/AuditLogs';
 import Settings from './components/Settings';
 import SimulateIncidentModal from './components/SimulateIncidentModal';
+import AuthModal from './components/AuthModal';
 import { initialIncidents } from './data/mockData';
 import { api } from './services/api';
 
@@ -18,6 +19,7 @@ export default function App() {
   const [incidents, setIncidents] = useState(initialIncidents);
   const [selectedIncident, setSelectedIncident] = useState(initialIncidents[0]);
   const [isSimulateOpen, setIsSimulateOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -26,10 +28,10 @@ export default function App() {
     visible: false,
     message: '',
     icon: 'check_circle',
-    color: 'text-secondary'
+    color: 'text-powder-blue'
   });
 
-  const showToast = (message, icon = 'check_circle', color = 'text-secondary') => {
+  const showToast = (message, icon = 'check_circle', color = 'text-powder-blue') => {
     setToast({
       visible: true,
       message,
@@ -50,7 +52,7 @@ export default function App() {
         if (updated) setSelectedIncident(updated);
       }
     } catch {
-      // Fallback
+      // Fallback to local store
     }
   };
 
@@ -66,7 +68,7 @@ export default function App() {
   const handleInjectIncident = (newInc) => {
     setIncidents(prev => [newInc, ...prev]);
     setSelectedIncident(newInc);
-    showToast(`Injected incident ${newInc.id} (${newInc.severity}) into active telemetry stream!`, 'bolt', 'text-error');
+    showToast(`Injected incident ${newInc.id} (${newInc.severity}) into active telemetry stream!`, 'bolt', 'text-sunset-peach');
   };
 
   const handleApprovePatch = (incidentId, notes) => {
@@ -84,8 +86,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-dim text-on-surface flex">
-      {/* Fixed Sidebar with responsive mobile drawer support */}
+    <div className="min-h-screen mesh-canvas text-deep-navy flex flex-col relative font-sans">
+      {/* Floating Vertical Navigation Rail (Image 2 style) */}
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -95,8 +97,8 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 flex-1 flex flex-col min-w-0">
-        {/* Fixed Header */}
+      <div className="lg:pl-28 flex-1 flex flex-col min-w-0">
+        {/* Floating Horizontal Header */}
         <Header
           onSimulateClick={() => setIsSimulateOpen(true)}
           onSearch={(query) => {
@@ -105,10 +107,11 @@ export default function App() {
           }}
           searchQuery={searchQuery}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+          onOpenAuth={() => setIsAuthOpen(true)}
         />
 
         {/* Viewport Content */}
-        <main className="dashboard-main relative pt-16 bg-surface-dim min-h-screen w-full min-w-0 px-3 py-5 sm:px-4 lg:px-6 xl:px-8">
+        <main className="dashboard-main relative pt-24 min-h-screen w-full min-w-0 px-4 sm:px-6 lg:px-8 pb-12">
           {activeTab === 'overview' && (
             <Overview
               incidents={incidents}
@@ -163,15 +166,15 @@ export default function App() {
         </main>
       </div>
 
-      {/* Floating Toast Notification */}
+      {/* Floating Toast Notification (Frosted Pill) */}
       <div
-        className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 transform transition-all duration-300 pointer-events-none ${
+        className={`fixed bottom-5 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 transform transition-all duration-300 pointer-events-none ${
           toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'
         }`}
       >
-        <div className="mx-auto sm:mx-0 w-fit max-w-full bg-surface-container-highest text-on-surface px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 border border-surface-container-high">
-          <span className={`material-symbols-outlined ${toast.color}`}>{toast.icon}</span>
-          <span className="font-body-sm text-body-sm font-medium text-xs font-mono break-words">{toast.message}</span>
+        <div className="mx-auto sm:mx-0 w-fit max-w-full glass-panel text-deep-navy px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/90">
+          <span className={`material-symbols-outlined text-[20px] ${toast.color}`}>{toast.icon}</span>
+          <span className="font-sans font-semibold text-xs break-words">{toast.message}</span>
         </div>
       </div>
 
@@ -180,6 +183,13 @@ export default function App() {
         isOpen={isSimulateOpen}
         onClose={() => setIsSimulateOpen(false)}
         onInjectIncident={handleInjectIncident}
+      />
+
+      {/* Login & Registration Modal (Section 5 of new_design.md) */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        showToast={showToast}
       />
     </div>
   );

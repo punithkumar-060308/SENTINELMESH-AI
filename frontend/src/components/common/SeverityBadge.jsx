@@ -10,19 +10,19 @@ const SEVERITY_CONFIG = {
   high: {
     label: "HIGH (P1)",
     short: "P1",
-    bg: "bg-secondary-container/20 text-secondary border border-secondary/30 font-semibold",
+    bg: "bg-sunset-peach/30 text-deep-navy border border-sunset-peach/50 font-semibold",
     ping: false
   },
   medium: {
     label: "MEDIUM (P2)",
     short: "P2",
-    bg: "bg-primary-container/20 text-primary border border-primary/30 font-medium",
+    bg: "bg-powder-blue/30 text-deep-navy border border-powder-blue/50 font-medium",
     ping: false
   },
   low: {
     label: "LOW (P3)",
     short: "P3",
-    bg: "bg-surface-container-highest text-on-surface-variant border border-surface-container-high font-normal",
+    bg: "bg-white/80 text-muted-slate border border-white/90 font-normal",
     ping: false
   }
 };
@@ -40,7 +40,7 @@ export default function SeverityBadge({ severity, short = false, className = "" 
     <span
       role="status"
       aria-label={`Severity: ${config.label}`}
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] uppercase tracking-wider ${config.bg} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[11px] uppercase tracking-wider shadow-xs ${config.bg} ${className}`}
     >
       {config.ping && (
         <span className="w-1.5 h-1.5 rounded-full bg-error animate-ping" />
@@ -49,4 +49,3 @@ export default function SeverityBadge({ severity, short = false, className = "" 
     </span>
   );
 }
-

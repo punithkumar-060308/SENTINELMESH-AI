@@ -3,50 +3,50 @@ import React from 'react';
 const STATUS_CONFIG = {
   detected: {
     label: "Detected",
-    bg: "bg-surface-container-highest text-on-surface",
-    dot: "bg-outline",
+    bg: "bg-white/80 text-deep-navy border-white/90",
+    dot: "bg-muted-slate",
     pulse: false
   },
   investigating: {
     label: "Investigating",
-    bg: "bg-secondary-container/20 text-secondary border border-secondary/30",
-    dot: "bg-secondary",
+    bg: "bg-sunset-peach/30 text-deep-navy border-sunset-peach/40",
+    dot: "bg-sunset-peach",
     pulse: true
   },
   awaiting_approval: {
     label: "Awaiting Approval",
-    bg: "bg-primary-container/20 text-primary border border-primary/30",
-    dot: "bg-primary",
+    bg: "bg-powder-blue/30 text-deep-navy border-powder-blue/40",
+    dot: "bg-powder-blue",
     pulse: true
   },
   approved: {
     label: "Approved",
-    bg: "bg-secondary-container/30 text-secondary border border-secondary/30",
-    dot: "bg-secondary",
+    bg: "bg-sunset-peach/25 text-deep-navy border-sunset-peach/30",
+    dot: "bg-sunset-peach",
     pulse: false
   },
   verifying: {
     label: "Verifying in Sandbox",
-    bg: "bg-tertiary-container/20 text-tertiary border border-tertiary/30",
-    dot: "bg-tertiary",
+    bg: "bg-powder-blue/35 text-deep-navy border-powder-blue/50",
+    dot: "bg-powder-blue",
     pulse: true
   },
   recovered: {
     label: "Recovered & Verified",
-    bg: "bg-tertiary-container/30 text-tertiary border border-tertiary/40",
-    dot: "bg-tertiary",
+    bg: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
     pulse: false
   },
   failed: {
     label: "Verification Failed",
-    bg: "bg-error-container text-on-error-container border border-error/30",
+    bg: "bg-error-container text-on-error-container border-error/30",
     dot: "bg-error",
     pulse: false
   },
   rejected: {
     label: "Patch Rejected",
-    bg: "bg-surface-container-highest text-error border border-error/20",
-    dot: "bg-error",
+    bg: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-500",
     pulse: false
   }
 };
@@ -55,14 +55,14 @@ export default function StatusBadge({ status, className = "" }) {
   const normStatus = (status || "").toLowerCase().replace(/ /g, '_');
   const config = STATUS_CONFIG[normStatus] || {
     label: status,
-    bg: "bg-surface-container-highest text-on-surface-variant",
-    dot: "bg-outline",
+    bg: "bg-white/80 text-deep-navy border-white/90",
+    dot: "bg-muted-slate",
     pulse: false
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-[11px] font-semibold tracking-wide ${config.bg} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-[11px] font-semibold border shadow-xs ${config.bg} ${className}`}
     >
       <span className="relative flex h-2 w-2">
         {config.pulse && (
@@ -74,4 +74,3 @@ export default function StatusBadge({ status, className = "" }) {
     </span>
   );
 }
-
