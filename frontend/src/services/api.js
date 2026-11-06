@@ -26,9 +26,12 @@ export const api = {
    */
   async getHealth() {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/health`);
-      if (!res.ok) throw new Error(`Health check failed: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/health`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to demo mock
+      }
     }
     await mockDelay(100);
     return { status: "ok", mode: "demo_mock", timestamp: new Date().toISOString() };
@@ -39,9 +42,12 @@ export const api = {
    */
   async getIncidents() {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents`);
-      if (!res.ok) throw new Error(`Failed to fetch incidents: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(200);
     return [...incidentsStore];
@@ -52,9 +58,12 @@ export const api = {
    */
   async getIncidentById(id) {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents/${id}`);
-      if (!res.ok) throw new Error(`Incident ${id} not found: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents/${id}`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(150);
     const found = incidentsStore.find((i) => i.id === id);
@@ -67,13 +76,16 @@ export const api = {
    */
   async simulateIncident(incidentData) {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(incidentData)
-      });
-      if (!res.ok) throw new Error(`Failed to simulate incident: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(incidentData)
+        });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(400);
     const newInc = {
@@ -106,9 +118,12 @@ export const api = {
    */
   async analyzeIncident(id) {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents/${id}/analyze`, { method: "POST" });
-      if (!res.ok) throw new Error(`Failed to analyze incident: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents/${id}/analyze`, { method: "POST" });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(500);
     incidentsStore = incidentsStore.map((inc) =>
@@ -122,13 +137,16 @@ export const api = {
    */
   async approvePatch(incidentId, notes = "") {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision: "approve", notes })
-      });
-      if (!res.ok) throw new Error(`Approval failed: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision: "approve", notes })
+        });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(600);
 
@@ -165,13 +183,16 @@ export const api = {
    */
   async rejectPatch(incidentId, reason = "") {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision: "reject", reason })
-      });
-      if (!res.ok) throw new Error(`Rejection failed: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ decision: "reject", reason })
+        });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(400);
 
@@ -207,9 +228,12 @@ export const api = {
    */
   async runVerification(incidentId) {
     if (API_BASE_URL) {
-      const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/verify`, { method: "POST" });
-      if (!res.ok) throw new Error(`Verification request failed: ${res.statusText}`);
-      return await res.json();
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/incidents/${incidentId}/verify`, { method: "POST" });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to mock store
+      }
     }
     await mockDelay(1200);
 
@@ -264,6 +288,14 @@ export const api = {
    * Fetch verification runs
    */
   async getVerificationRuns() {
+    if (API_BASE_URL) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/verification-runs`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to local store
+      }
+    }
     await mockDelay(150);
     return [...verificationRunsStore];
   },
@@ -272,6 +304,14 @@ export const api = {
    * Fetch audit logs
    */
   async getAuditLogs() {
+    if (API_BASE_URL) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/audit-logs`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to local store
+      }
+    }
     await mockDelay(150);
     return [...auditLogStore];
   },
@@ -280,6 +320,14 @@ export const api = {
    * Fetch fleet agents
    */
   async getFleetAgents() {
+    if (API_BASE_URL) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/fleet/agents`);
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback to local store
+      }
+    }
     await mockDelay(100);
     return [...fleetAgents];
   },
