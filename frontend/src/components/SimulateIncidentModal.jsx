@@ -79,7 +79,7 @@ export default function SimulateIncidentModal({ isOpen, onClose, onInjectInciden
 
   return (
     <div className="fixed inset-0 bg-surface-container-lowest/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-surface-container border border-surface-container-highest rounded-2xl max-w-xl w-full p-space-lg shadow-2xl animate-in fade-in duration-200">
+      <div className="bg-surface-container border border-surface-container-highest rounded-2xl max-w-xl w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-space-lg shadow-2xl animate-in fade-in duration-200">
         <div className="flex items-center justify-between pb-space-sm border-b border-surface-container-high/50">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-secondary text-2xl animate-pulse">bolt</span>
@@ -164,4 +164,3 @@ export default function SimulateIncidentModal({ isOpen, onClose, onInjectInciden
     </div>
   );
 }
-

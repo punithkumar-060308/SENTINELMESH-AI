@@ -108,7 +108,7 @@ export default function App() {
         />
 
         {/* Viewport Content */}
-        <main className="relative pt-16 bg-surface-dim min-h-screen w-full px-space-margin py-space-lg">
+        <main className="dashboard-main relative pt-16 bg-surface-dim min-h-screen w-full min-w-0 px-3 py-5 sm:px-4 lg:px-6 xl:px-8">
           {activeTab === 'overview' && (
             <Overview
               incidents={incidents}
@@ -165,13 +165,13 @@ export default function App() {
 
       {/* Floating Toast Notification */}
       <div
-        className={`fixed bottom-6 right-6 z-50 transform transition-all duration-300 pointer-events-none ${
+        className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 transform transition-all duration-300 pointer-events-none ${
           toast.visible ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0'
         }`}
       >
-        <div className="bg-surface-container-highest text-on-surface px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 border border-surface-container-high">
+        <div className="mx-auto sm:mx-0 w-fit max-w-full bg-surface-container-highest text-on-surface px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3 border border-surface-container-high">
           <span className={`material-symbols-outlined ${toast.color}`}>{toast.icon}</span>
-          <span className="font-body-sm text-body-sm font-medium text-xs font-mono">{toast.message}</span>
+          <span className="font-body-sm text-body-sm font-medium text-xs font-mono break-words">{toast.message}</span>
         </div>
       </div>
 

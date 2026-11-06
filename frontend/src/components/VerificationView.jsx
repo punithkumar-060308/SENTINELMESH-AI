@@ -95,7 +95,7 @@ export default function VerificationView({ showToast }) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="material-symbols-outlined text-tertiary text-2xl">science</span>
             <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
               Independent Verification Engine

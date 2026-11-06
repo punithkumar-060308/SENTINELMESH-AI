@@ -25,7 +25,7 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
       {/* Top Greeting & Header Actions Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-label-sm text-label-sm uppercase tracking-wider text-secondary font-mono text-xs">
               Telemetry Node // US-East-1
             </span>
@@ -43,7 +43,7 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
           </p>
         </div>
 
-        <div className="flex items-center gap-space-sm self-start lg:self-center">
+        <div className="flex flex-wrap items-center gap-space-sm self-start lg:self-center">
           <button
             onClick={handleRefresh}
             className="flex items-center gap-1.5 px-3 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors font-body-sm text-xs shadow-sm border border-surface-container-highest/40"
@@ -169,7 +169,7 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
         {/* Left: Trend Chart & Resolution Metrics */}
         <div className="lg:col-span-8 flex flex-col gap-space-md">
           <div className="p-space-md rounded-lg bg-surface-container-low border border-surface-container-high/40 shadow-sm flex flex-col gap-space-sm relative">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-surface-container-high/30">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2 pb-2 border-b border-surface-container-high/30">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
                   <span className="font-headline-sm text-headline-sm text-on-surface font-semibold text-sm">
@@ -412,7 +412,7 @@ export default function Overview({ incidents, onSelectIncident, onSimulateClick,
 
         {/* Table Container */}
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left font-body-sm text-xs">
+          <table className="w-full min-w-[720px] text-left font-body-sm text-xs">
             <thead>
               <tr className="bg-surface-container-lowest/80 text-on-surface-variant font-mono uppercase text-[11px] border-b border-surface-container-high/40">
                 <th className="py-2.5 px-3">INCIDENT ID</th>

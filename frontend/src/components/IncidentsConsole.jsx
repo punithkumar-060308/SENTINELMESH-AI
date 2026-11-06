@@ -191,7 +191,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
       {/* Filter & Search Control Bar */}
       <div className="rounded-xl bg-surface-container-low p-space-md shadow-sm border border-surface-container-high/40 flex flex-col lg:flex-row gap-space-sm items-stretch lg:items-center justify-between">
         {/* Instant Search Input */}
-        <div className="relative flex-1 min-w-[280px]">
+        <div className="relative flex-1 min-w-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
             search
           </span>
@@ -300,7 +300,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
       {/* Incident Data Grid / Table Surface */}
       <div className="rounded-xl bg-surface-container-low shadow-md overflow-hidden flex flex-col border border-surface-container-high/40">
         {/* Grid Column Headers */}
-        <div className="bg-surface-container px-space-md py-space-sm hidden md:grid grid-cols-12 gap-space-sm items-center font-mono uppercase text-[11px] text-on-surface-variant select-none border-b border-surface-container-high/40">
+        <div className="bg-surface-container px-space-md py-space-sm hidden xl:grid grid-cols-12 gap-space-sm items-center font-mono uppercase text-[11px] text-on-surface-variant select-none border-b border-surface-container-high/40">
           <div className="col-span-1 flex items-center gap-2">
             <input
               checked={selectedIds.length === filteredIncidents.length && filteredIncidents.length > 0}
@@ -339,10 +339,10 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
               return (
                 <div
                   key={inc.id}
-                  className="group p-space-md hover:bg-surface-container/60 transition-colors flex flex-col md:grid md:grid-cols-12 gap-space-sm items-start md:items-center bg-surface-container-low"
+                  className="group p-space-md hover:bg-surface-container/60 transition-colors flex flex-col xl:grid xl:grid-cols-12 gap-space-sm items-start xl:items-center bg-surface-container-low"
                 >
                   {/* Col 1: ID + Select */}
-                  <div className="md:col-span-1 flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                  <div className="xl:col-span-1 flex items-center gap-2 w-full xl:w-auto justify-between xl:justify-start">
                     <div className="flex items-center gap-2">
                       <input
                         checked={selectedIds.includes(inc.id)}
@@ -357,13 +357,13 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                         {inc.id}
                       </span>
                     </div>
-                    <div className="md:hidden">
+                    <div className="xl:hidden">
                       <SeverityBadge severity={inc.severity} short />
                     </div>
                   </div>
 
                   {/* Col 2: Service Tag */}
-                  <div className="md:col-span-2 flex items-center gap-1.5 min-w-0">
+                  <div className="xl:col-span-2 flex items-center gap-1.5 min-w-0">
                     <span className="material-symbols-outlined text-[16px] text-outline shrink-0">
                       dns
                     </span>
@@ -378,7 +378,7 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                   </div>
 
                   {/* Col 3: Error Message & Signature */}
-                  <div className="md:col-span-4 flex flex-col min-w-0 pr-space-xs">
+                  <div className="xl:col-span-4 flex flex-col min-w-0 pr-space-xs">
                     <span className="font-mono text-error font-medium truncate text-xs">
                       {inc.signature || inc.title}
                     </span>
@@ -402,12 +402,12 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                   </div>
 
                   {/* Col 4: Severity Badge */}
-                  <div className="hidden md:flex md:col-span-1 items-center">
+                  <div className="hidden xl:flex xl:col-span-1 items-center">
                     <SeverityBadge severity={inc.severity} />
                   </div>
 
                   {/* Col 5: Pipeline & Agent Tag */}
-                  <div className="md:col-span-2 flex flex-col gap-1 w-full md:w-auto font-mono">
+                  <div className="xl:col-span-2 flex flex-col gap-1 w-full xl:w-auto font-mono">
                     <StatusBadge status={inc.status} />
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-[10px]">
                       <span className="material-symbols-outlined text-[14px] text-primary">auto_fix_high</span>
@@ -416,13 +416,13 @@ export default function IncidentsConsole({ incidents, onSelectIncident, onSimula
                   </div>
 
                   {/* Col 6: Detected Time */}
-                  <div className="md:col-span-1 flex items-center font-mono text-on-surface-variant text-[11px]">
+                  <div className="xl:col-span-1 flex items-center font-mono text-on-surface-variant text-[11px]">
                     <span className="material-symbols-outlined text-[14px] mr-1 text-outline">schedule</span>
                     <span>{inc.detectedTime || 'Recently'}</span>
                   </div>
 
                   {/* Col 7: View Details CTA */}
-                  <div className="md:col-span-1 flex items-center justify-end w-full md:w-auto pt-2 md:pt-0">
+                  <div className="xl:col-span-1 flex items-center justify-end w-full xl:w-auto pt-2 xl:pt-0">
                     <button
                       onClick={() => onSelectIncident(inc)}
                       className="flex items-center gap-1 px-3 py-1.5 rounded bg-primary text-on-primary font-body-sm text-xs font-semibold hover:bg-primary-fixed transition-colors shadow-sm"

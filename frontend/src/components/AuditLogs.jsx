@@ -13,7 +13,7 @@ export default function AuditLogs({ showToast }) {
     <div className="flex flex-col w-full gap-space-lg font-mono">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="material-symbols-outlined text-secondary text-2xl">receipt_long</span>
             <h1 className="font-headline-lg text-headline-lg text-on-surface font-sans font-semibold">
               Immutable Mesh Audit Ledger
@@ -47,7 +47,8 @@ export default function AuditLogs({ showToast }) {
       </div>
 
       <div className="bg-surface-container-low rounded-xl border border-surface-container-high/40 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-xs">
           <thead>
             <tr className="bg-surface-container text-on-surface-variant uppercase text-[11px] border-b border-surface-container-high/40">
               <th className="py-2.5 px-4">LEDGER ID</th>
@@ -75,8 +76,8 @@ export default function AuditLogs({ showToast }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
 }
-

@@ -10,9 +10,9 @@ export default function Header({
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
-    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl z-40 px-space-md lg:px-space-margin flex items-center justify-between border-b border-surface-container-high/40 shadow-sm">
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl z-40 px-3 sm:px-4 xl:px-6 flex items-center justify-between gap-2 border-b border-surface-container-high/40 shadow-sm">
       {/* Left: Mobile Toggle + Breadcrumb & Live Watch status */}
-      <div className="flex items-center gap-space-sm lg:gap-space-md">
+      <div className="flex min-w-0 items-center gap-space-sm lg:gap-space-md">
         {/* Mobile Hamburger Button */}
         <button
           onClick={onOpenMobileMenu}
@@ -22,18 +22,18 @@ export default function Header({
           <span className="material-symbols-outlined text-[22px]">menu</span>
         </button>
 
-        <div className="flex items-center gap-space-xs font-label-md text-label-md text-on-surface-variant font-mono text-xs">
+        <div className="flex min-w-0 items-center gap-space-xs font-label-md text-label-md text-on-surface-variant font-mono text-xs">
           <span className="material-symbols-outlined text-[16px] text-secondary">hub</span>
           <span className="hidden sm:inline">Mesh</span>
           <span className="hidden sm:inline text-outline">/</span>
-          <span className="text-on-surface font-medium truncate max-w-[120px] sm:max-w-none">Autonomous Swarm</span>
+          <span className="hidden text-on-surface font-medium truncate sm:inline sm:max-w-[140px] xl:max-w-none">Autonomous Swarm</span>
         </div>
 
         <DemoBadge className="hidden sm:inline-flex" />
       </div>
 
       {/* Global Search Bar */}
-      <div className="hidden md:flex items-center w-72 lg:w-80 relative">
+      <div className="hidden lg:flex min-w-0 items-center w-40 xl:w-64 relative">
         <span className="material-symbols-outlined absolute left-2.5 text-[18px] text-on-surface-variant">
           search
         </span>
@@ -50,15 +50,15 @@ export default function Header({
       </div>
 
       {/* Header Actions & Agent Pills */}
-      <div className="flex items-center gap-space-sm lg:gap-space-md">
+      <div className="flex shrink-0 items-center gap-space-xs sm:gap-space-sm lg:gap-space-md">
         {/* Simulate Incident Button */}
         <button
           onClick={onSimulateClick}
+          aria-label="Simulate incident"
           className="flex items-center gap-space-xs px-2.5 sm:px-space-sm py-1.5 rounded bg-gradient-to-r from-primary-container via-inverse-primary to-secondary-container text-on-primary font-body-sm text-xs font-semibold hover:brightness-110 active:scale-95 transition-all shadow-md shadow-primary-container/20"
         >
           <span className="material-symbols-outlined text-[16px] sm:text-[18px] animate-pulse">bolt</span>
           <span className="hidden sm:inline">Simulate Incident</span>
-          <span className="sm:hidden">Simulate</span>
         </button>
 
         {/* Live Swarm Micro Status Pills */}
@@ -92,7 +92,7 @@ export default function Header({
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 bg-surface-container-high border border-surface-container-highest rounded-xl shadow-2xl p-space-sm z-50 animate-in fade-in duration-150">
+            <div className="absolute right-0 top-12 w-72 max-w-[calc(100vw-1rem)] bg-surface-container-high border border-surface-container-highest rounded-xl shadow-2xl p-space-sm z-50 animate-in fade-in duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-surface-container-highest/60 mb-2">
                 <span className="font-headline-sm text-xs font-semibold text-on-surface">Recent Alert Streams</span>
                 <span className="font-label-sm text-[10px] text-secondary font-mono">Demo Telemetry</span>

@@ -80,7 +80,7 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm border-b border-surface-container-high/40">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="material-symbols-outlined text-secondary text-2xl">healing</span>
             <h1 className="font-headline-lg text-headline-lg text-on-surface font-semibold">
               Autonomous Patch Review & Approval
@@ -201,10 +201,10 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
                   <h2 className="font-headline-sm text-base text-on-surface font-semibold mt-1">
                     {activeIncident.title}
                   </h2>
-                  <div className="text-xs font-mono text-outline flex items-center gap-2">
+                  <div className="text-xs font-mono text-outline flex flex-wrap items-center gap-2">
                     <span>App: <strong className="text-on-surface">{activeIncident.application}</strong></span>
                     <span>·</span>
-                    <span>Target: <code className="text-secondary">{activeIncident.sourceFile || 'src/main/Handler.java:142'}</code></span>
+                    <span>Target: <code className="break-all text-secondary">{activeIncident.sourceFile || 'src/main/Handler.java:142'}</code></span>
                   </div>
                 </div>
 
@@ -386,4 +386,3 @@ export default function PatchReview({ incidents, onSelectIncident, showToast, on
     </div>
   );
 }
-
