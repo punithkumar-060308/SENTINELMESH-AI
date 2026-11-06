@@ -49,4 +49,8 @@ __all__ = [
     "VerifierInput",
     "VerifierOutput",
     "AgentActivityEvent",
+    "SandboxService",
+    "sandbox_service",
 ]
+
+from sandbox import SandboxService, sandbox_service

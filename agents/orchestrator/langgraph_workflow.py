@@ -363,7 +363,8 @@ class LangGraphOrchestratorNodes:
         """
         incident_id = state["incident_id"]
 
-        if state.get("workflow_status") != "approved":
+        decision = (state.get("human_decision") or {}).get("decision")
+        if state.get("workflow_status") != "approved" or decision not in ["approved", "approve"]:
             return {
                 **state,
                 "error": "Sandbox execution aborted: patch is not approved.",
@@ -371,18 +372,47 @@ class LangGraphOrchestratorNodes:
                 "current_step": "sandbox_blocked",
             }
 
-        # Simulate isolated container mount and patch application
-        sandbox_res = {
-            "container_id": f"sandbox-{uuid.uuid4().hex[:6]}",
-            "applied": True,
-            "target_file": state.get("patch_proposal", {}).get("target_file"),
-            "status": "ready_for_verification",
-            "timestamp": current_utc_iso(),
+        patch_prop = state.get("patch_proposal") or {}
+        patch_file = patch_prop.get("target_file") or "demo_api/service.py"
+        diff_content = patch_prop.get("diff") or "def get_users(): pass"
+
+        if state.get("simulate_verification_failure"):
+            diff_content = "// Deliberate verification failure\nthrow new RuntimeException('Forced failure');"
+
+        from sandbox import sandbox_service
+        patch_data = {
+            "id": state.get("patch_id", f"PAT-{incident_id.replace('INC-', '')}"),
+            "file_path": patch_file,
+            "diff": diff_content,
         }
+
+        # Run genuine sandbox execution
+        sandbox_res = sandbox_service.execute_patch_verification(
+            incident_id=incident_id,
+            patch_data=patch_data,
+            human_approval=state.get("human_decision") or {"decision": "approved"},
+            timeout_seconds=10,
+            persist_results=True,
+        )
+
+        res_dict = sandbox_res.model_dump()
+        res_dict["applied"] = True
+        res_dict["container_id"] = sandbox_res.run_id
+        res_dict["target_file"] = patch_file
+        res_dict["status"] = "ready_for_verification" if sandbox_res.status == "passed" else sandbox_res.status
+
+        # If sandbox execution failed or timed out, report failure state without crashing graph
+        if sandbox_res.status not in ["passed"]:
+            return {
+                **state,
+                "sandbox_result": res_dict,
+                "workflow_status": "verifying",
+                "current_step": "sandbox_failed",
+            }
 
         return {
             **state,
-            "sandbox_result": sandbox_res,
+            "sandbox_result": res_dict,
             "workflow_status": "verifying",
             "current_step": "sandbox_applied",
         }
@@ -413,9 +443,10 @@ class LangGraphOrchestratorNodes:
                 timeout_seconds=30,
             )
 
-            # Check if synthetic simulation flags are passed in state
-            mock_success = not state.get("simulate_verification_failure")
-            mock_failure = bool(state.get("simulate_verification_failure"))
+            # Check if synthetic simulation flags or sandbox results indicate success/failure
+            sandbox_status = (state.get("sandbox_result") or {}).get("status")
+            mock_success = (sandbox_status in ["passed", "ready_for_verification"]) and not state.get("simulate_verification_failure")
+            mock_failure = not mock_success
 
             output, event = self.verifier.verify(
                 ver_input,
