@@ -86,7 +86,7 @@ Detect ➔ Investigate ➔ Repair ➔ Human Approval Gate ➔ Isolated Sandbox �
 
 * **Specialized Agent Collaboration**: Division of labor between Observer, Investigator, Repair, and Verifier agents prevents single-agent blind spots.
 * **Mandatory Human-in-the-Loop Gate**: Autonomous execution halts before patch application. Only authenticated human sign-off can release a patch to the sandbox.
-* **Isolated Container Sandbox**: Untrusted patch code executes strictly within an ephemeral, unprivileged Docker container with zero network access and read-only filesystem mounts.
+* **Isolated Container Sandbox**: Approved patches are applied strictly to an ephemeral, disposable workspace snapshot, which is mounted into an unprivileged Docker container as a read-only volume (`:ro`) with zero network access and strict resource limits.
 * **Deterministic Verification**: Recovery is declared only when independent pytest suites pass (exit code 0, passed > 0, failed = 0).
 * **Crash-Resilient State**: Persistent SQLite checkpointing preserves pending approval states across backend restarts and process recycles.
 
@@ -96,12 +96,12 @@ Detect ➔ Investigate ➔ Repair ➔ Human Approval Gate ➔ Isolated Sandbox �
 
 - **Automated Telemetry Ingestion**: Normalizes stack traces, error messages, and log streams into structured incident evidence.
 - **Evidence-Grounded Diagnosis**: Investigator isolates root causes and correlates affected source files with confidence ratings.
-- **Constrained Patch Synthesis**: Repair agent generates minimal unified diffs confined to an allowlist of target files (`PERMITTED_FILE_ALLOWLIST`).
+- **Constrained Patch Synthesis**: Repair agent generates minimal unified diffs confined to an allowlist of target files (`PERMITTED_FILE_ALLOWLIST`), capped at 30KB, 250 lines, and a single target file.
 - **Human Approval Checkpoint**: Pauses LangGraph execution, preventing patch execution without human operator sign-off.
 - **Hardened Docker Sandbox**: Runs containers with `--network none`, `--read-only`, `--user 1000:1000`, `--cap-drop ALL`, `--pids-limit 64`, and `--memory 256m`.
 - **Fail-Closed Verification Engine**: Zero tests, failed assertions, execution timeouts, or Docker engine outages immediately fail closed, blocking false recovery.
 - **Persistent State Checkpointing**: Resumes suspended approval workflows from disk after backend restarts without re-running earlier steps.
-- **Cryptographic Audit Ledger**: Tamper-evident SHA-256 hash-chained audit trail records all lifecycle events (`INCIDENT_REGISTERED`, `PATCH_APPROVED`, `VERIFICATION_SUCCESS`).
+- **SHA-256 Audit Trail**: Event records compute SHA-256 integrity digests over timestamp, actor, action, and payload to record lifecycle transitions (`INCIDENT_REGISTERED`, `PATCH_APPROVED`, `VERIFICATION_SUCCESS`).
 - **Real-Time Interactive Dashboard**: React/Tailwind frontend provides live incident triage, diff review, telemetry inspection, and audit ledger tracking.
 
 ### Application Interface and Screenshots
@@ -112,7 +112,7 @@ Detect ➔ Investigate ➔ Repair ➔ Human Approval Gate ➔ Isolated Sandbox �
 | **Incident Triage & Evidence** | `docs/assets/screenshots/incidents.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ with an active incident showing normalized stack traces and evidence --> Normalized error signatures and telemetry evidence |
 | **Human Approval & Patch Review** | `docs/assets/screenshots/patch-review.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing proposed patch diff, file allowlist validation, and approve/reject actions --> Side-by-side diff review and human sign-off gate |
 | **Docker Sandbox Verification** | `docs/assets/screenshots/verification.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing container execution log, duration, and pytest pass results --> Isolated container test execution and regression logs |
-| **Cryptographic Audit Trail** | `docs/assets/screenshots/audit-logs.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing chronological SHA-256 hash-chained audit records --> Chronological, hash-chained audit ledger |
+| **Cryptographic Audit Trail** | `docs/assets/screenshots/audit-logs.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing chronological SHA-256 hashed audit records --> Chronological, SHA-256 hashed event records |
 
 <!-- NOTE: Place actual full-resolution PNG captures in the `docs/assets/screenshots/` directory using the filenames above. -->
 
@@ -153,7 +153,7 @@ flowchart LR
 * **Responsibilities**:
   - Generates minimal, human-reviewable unified diffs targeting the failure.
   - Enforces strict path validation against `PERMITTED_FILE_ALLOWLIST`.
-  - Rejects oversized modifications (>64KB) or malformed diff structures.
+  - Rejects oversized modifications (>30KB / 250 lines), multiple target files, or malformed diff structures.
   - Formats original and patched code lines for frontend side-by-side review.
   - Marks proposed patches with status `pending`.
 
@@ -161,10 +161,12 @@ flowchart LR
 * **Domain**: Independent regression testing and recovery evaluation.
 * **Responsibilities**:
   - Validates authenticated human approval provenance before dispatching runs.
-  - Dispatches disposable test suites into the isolated Docker sandbox.
+  - Provisions an ephemeral, disposable workspace snapshot on the host with the candidate patch applied.
+  - Mounts the pre-patched snapshot into the isolated Docker sandbox as a strictly read-only volume (`:ro`).
+  - Enforces execution timeouts with active container termination (`docker stop -t 1`) and forceful cleanup (`docker rm -f`).
   - Parses real pytest execution logs, stdout, stderr, exit codes, and test counts.
   - Evaluates recovery criteria: requires exit code 0, at least one passed test, and zero failures.
-  - Blocks recovery on timeouts, compilation errors, or test assertion failures.
+  - Blocks recovery on timeouts, Docker unavailability, compilation errors, or test assertion failures.
 
 ---
 
@@ -269,7 +271,7 @@ flowchart TD
 | | Vite | `^6.0.7` | Frontend dev server and production bundler |
 | | Tailwind CSS | `^3.4.17` | Utility-first responsive styling and Stitch theme |
 | | Lucide React | `^0.344.0` | UI iconography |
-| **Backend** | Python | `3.10+` | Core backend runtime (validated on Python 3.14) |
+| **Backend** | Python | `3.10+` | Core backend runtime (Python 3.10–3.12 recommended) |
 | | FastAPI | `>=0.110.0` | High-performance asynchronous REST API framework |
 | | Uvicorn | `>=0.28.0` | ASGI web server implementation |
 | | Pydantic | `>=2.6.0` | Strict data validation and schema serialization |
@@ -277,7 +279,7 @@ flowchart TD
 | | SQLite (`sqlite3`) | Standard Library | Persistent checkpointing across process reboots |
 | | Google Gemini SDK | Optional | Optional LLM synthesis engine for agents |
 | **Data & Audit** | MongoDB (`pymongo`) | `>=4.6.0` | Document persistence (with graceful in-memory fallback) |
-| | SHA-256 Ledger | Python `hashlib` | Cryptographic audit trail chain of custody |
+| | SHA-256 Digest | Python `hashlib` | SHA-256 event integrity digests |
 | **Sandbox & Test** | Docker Engine | `20.10+` | Rootless, network-isolated container execution |
 | | Python 3.11 Slim | Container Base | Minimal container runtime (`sentinelmesh-sandbox`) |
 | | pytest | `>=8.0.0` | Deterministic unit, security, and regression testing |
@@ -306,7 +308,7 @@ SENTINELMESH-AI/
 │   │   ├── schemas/                  # Pydantic request and response models
 │   │   ├── services/                 # Business logic and verification service
 │   │   └── main.py                   # Application entry point & router mounting
-│   ├── tests/                        # 99 automated pytest suites
+│   ├── tests/                        # 99 automated pytest tests
 │   ├── requirements.txt              # Backend dependencies
 │   ├── .env.example                  # Backend environment template
 │   └── pytest.ini                    # Pytest configuration
@@ -314,6 +316,8 @@ SENTINELMESH-AI/
 │   ├── app.py                        # FastAPI demo application (mounted at /demo)
 │   ├── service.py                    # User service with reproducible pool exhaustion bug
 │   └── test_service.py               # Deterministic regression test suite
+├── docs/                             # Documentation assets and visual media
+│   └── assets/screenshots/           # UI captures and demonstration images
 ├── frontend/                         # React / Vite frontend client
 │   ├── src/
 │   │   ├── components/               # React components (Dashboard, VerificationView, AuditLogs)
@@ -344,7 +348,7 @@ SENTINELMESH-AI/
 Before installing SentinelMesh AI, ensure the following software is installed on your Windows machine:
 
 1. **Operating System**: Windows 10 / 11 (64-bit) or Windows Server.
-2. **Python**: Python `3.10` or higher (`3.11` – `3.14` supported).
+2. **Python**: Python `3.10` or higher (Python `3.10` – `3.12` recommended).
 3. **Node.js**: Node.js `v18.0.0` or higher (includes `npm`).
 4. **Docker Desktop**: Docker Engine running with Linux container support (WSL2 backend enabled).
 5. **Git**: Git for Windows.
@@ -548,8 +552,11 @@ python scripts/run_demo_scenario.py
 | `GET` | `/api/incidents/{id}/agent-logs` | Retrieve chronological agent execution telemetry |
 | `GET` | `/api/fleet/agents` | Monitor status and domain telemetry across all 4 fleet agents |
 | `GET` | `/api/verification-runs` | Retrieve historical sandbox execution runs |
-| `GET` | `/api/audit-logs` | Fetch chronological, hash-chained audit records |
+| `GET` | `/api/audit-logs` | Fetch chronological, SHA-256 hashed audit records |
 | `GET` | `/demo/users` | Canonical demo microservice (simulates connection pool defect) |
+
+> [!NOTE]
+> The table above highlights the primary endpoints for incident triage, patch approval, sandbox verification, and audit review. The complete backend registers 24 distinct OpenAPI routes (plus mounted demo service endpoints under `/demo`).
 
 ---
 
@@ -570,11 +577,20 @@ SentinelMesh AI treats all AI-generated code as **untrusted**. Code is never exe
 | **Memory Limit** | `--memory 256m` | Prevents host memory exhaustion (OOM killer terminates container with code 137) |
 | **CPU Limit** | `--cpus 1` | Prevents container from saturating host multi-core processor |
 | **Ephemeral Scratchpad** | `--tmpfs /tmp:rw,noexec,nosuid,size=64m` | Provides bounded temporary memory without persistence or execution |
-| **Mounted Workspace** | `-v <snapshot>:/workspace:ro` | Disposable workspace mounted as strictly read-only volume |
-| **Execution Timeout** | `subprocess.TimeoutExpired` (Default: 15s) | Kills and removes container if tests exceed timeout (exit code 124) |
+| **Mounted Workspace** | `-v <snapshot>:/workspace:ro` | Pre-patched disposable workspace snapshot mounted strictly read-only into container |
+| **Execution Timeout & Cleanup** | Host watchdog (15s ceiling), active `docker stop -t 1`, `docker rm -f` | Forcefully terminates timed-out container, records exit code 124, and unconditionally removes container instance in `finally` block |
 | **Path Allowlist** | `PERMITTED_FILE_ALLOWLIST` | Rejects modifications to files outside permitted target files |
+| **Patch Constraints** | `MAX_PATCH_BYTES` (30KB), `MAX_PATCH_LINES` (250) | Capped to 30,000 bytes, 250 lines, and a single changed file (`MAX_CHANGED_FILES = 1`) |
 | **Path Traversal Defense** | Path normalization & regex checks | Blocks 10+ traversal vectors (`../`, `\`, `/etc/`, null-bytes) |
 | **Fail-Closed Policy** | Docker Engine availability check | If Docker daemon is offline, halts execution; never falls back to host |
+
+### Patch Lifecycle and Container Execution Flow
+
+1. **Disposable Host Workspace**: When patch verification is requested, SentinelMesh AI initializes a fresh temporary workspace directory (`tempfile.mkdtemp(prefix="sentinel_sandbox_")`) populated with a clean baseline snapshot of the target application and regression tests.
+2. **Host-Side Patch Application**: The validated unified diff is applied strictly within the temporary directory on the host. Repository files outside this directory are never touched.
+3. **Read-Only Container Mount**: The pre-patched workspace is mounted into the ephemeral container as a strictly read-only volume (`-v <workspace>:/workspace:ro`). The container runtime has zero write access to workspace files.
+4. **Tmpfs Scratchpad**: Ephemeral writes (e.g. pytest cache) are directed to a non-executable tmpfs mount (`--tmpfs /tmp:rw,noexec,nosuid,size=64m`).
+5. **Timeout & Forceful Cleanup**: The host execution runner imposes a 15-second execution timeout. If tests exceed this limit, the host executes `docker stop -t 1 <container_name>` to actively terminate the container, synthesizes exit code `124`, and unconditionally cleans up resources via `docker rm -f <container_name>` in a `finally` block before discarding the temporary workspace with `shutil.rmtree`.
 
 > [!WARNING]
 > **Container Isolation Boundary**: Docker isolation provides restricted, ephemeral container execution that shields the host environment from untrusted code. However, standard Linux containers share the host OS kernel and do not provide the complete hypervisor-level security boundaries of microVMs (such as Firecracker or gVisor). Do not treat standard container isolation as production-grade multi-tenant execution.
@@ -600,7 +616,7 @@ The platform uses the Repository Pattern with MongoDB as the optional persistent
 - `evidence`: Normalized logs, AST snippets, and error traces.
 - `patches`: Proposed diffs, explanations, and approval metadata.
 - `verification_runs`: Test logs, exit codes, container IDs, and durations.
-- `audit_logs`: SHA-256 hash-chained event records.
+- `audit_logs`: SHA-256 event-hashed audit records with actor, timestamp, and action provenance.
 
 > [!NOTE]
 > SQLite is used strictly for persistent LangGraph workflow checkpointing (`agents/orchestrator/sqlite_checkpointer.py`) to survive process restarts, not as a replacement for the incident and evidence repositories.
@@ -616,6 +632,9 @@ To ensure resilience against backend server crashes or reboots during pending ap
 ## 20. Controlled Demonstration Results
 
 During controlled verification runs of the demonstration scenario ([`scripts/run_demo_scenario.py`](scripts/run_demo_scenario.py)), SentinelMesh AI verified the resolution of the connection pool defect:
+
+> [!NOTE]
+> **Representative Demonstration Run**: The console output below shows a representative execution of `scripts/run_demo_scenario.py`. Specific incident IDs (e.g., `INC-DEMO-3AD0C9`), container hashes, durations, and exact audit event counts reflect runtime generated values and will vary across executions.
 
 ```text
 ============================================================
@@ -635,7 +654,7 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
                                                            • test_regression_invariant_check: passed
 [Step 8] Incident Recovery State                   --> [OK] (Transitioned to 'recovered')
 [Step 9] Recovery Report Generation                --> [OK] (Verdict: Fully Recovered & Verified)
-[Step 10] Cryptographic Audit Trail                --> [OK] (19 events chained via SHA-256)
+[Step 10] Audit Trail Integrity Check              --> [OK] (Recorded audit events with SHA-256 digest validation)
 [Step 11] Flawed Patch Regression Guard            --> [OK] (Intentional bug failed tests; recovery blocked)
 ============================================================
   ✓ Complete SentinelMesh AI Lifecycle Successfully Verified!
@@ -651,7 +670,7 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
 
 | Capability / Module | Status | Verification Evidence |
 | :--- | :---: | :--- |
-| **FastAPI REST API & Health Endpoints** | ✅ Implemented | 16+ endpoints operational; CORS configured |
+| **FastAPI REST API & Health Endpoints** | ✅ Implemented | 24 registered API endpoints (plus `/demo` sub-app); CORS configured |
 | **Observer Agent Telemetry Ingestion** | ✅ Implemented | Normalizes logs and stack traces; tags missing data |
 | **Investigator Agent Root-Cause Analysis**| ✅ Implemented | Grounds diagnosis in source code snippets |
 | **Repair Agent Constrained Patching** | ✅ Implemented | Generates unified diffs; enforces file allowlist |
@@ -661,7 +680,7 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
 | **Docker Sandbox Container Execution** | ✅ Implemented | Rootless, read-only, `--network none`, resource-capped |
 | **Fail-Closed Safety Policy** | ✅ Implemented | Timeouts, Docker offline, zero tests block recovery |
 | **Persistent SQLite State Checkpointing** | ✅ Implemented | Resumes workflows across server reboots |
-| **Cryptographic SHA-256 Audit Ledger** | ✅ Implemented | Tamper-evident record of all workflow events |
+| **Cryptographic SHA-256 Audit Trail** | ✅ Implemented | SHA-256 event-hashed records with actor provenance |
 | **React / Tailwind Frontend Dashboard** | ✅ Implemented | Live incident triage, diff viewer, and audit feed |
 | **Canonical Demo Microservice** | ✅ Implemented | Reproducible pool exhaustion defect mounted at `/demo` |
 | **Automated End-to-End Test Suite** | ✅ Implemented | 99 backend tests passing; 6 frontend tests passing |
