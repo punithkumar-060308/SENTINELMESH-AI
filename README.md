@@ -167,7 +167,7 @@ sequenceDiagram
     participant Inv as Investigator Agent
     participant Rep as Repair Agent
     participant LG as LangGraph Orchestrator
-    participant Box as Docker Sandbox
+    participant Sandbox as Docker Sandbox
     participant Ver as Verifier Agent
     participant DB as Storage & Audit
 
@@ -183,13 +183,13 @@ sequenceDiagram
     alt Operator Rejects Patch
         User->>LG: Submit decision = "reject"
         LG->>DB: Mark patch rejected
-        Note over Box: Execution blocked. Sandbox is never invoked.
+        Note over Sandbox: Execution blocked. Sandbox is never invoked.
     else Operator Approves Patch
         User->>LG: Submit decision = "approve" (Elena Vance)
         LG->>DB: Update patch status to "approved" with actor provenance
-        LG->>Box: Dispatch patch to sentinelmesh-sandbox container
-        Note over Box: Executes pytest inside restricted container (--network none, --read-only)
-        Box-->>Ver: Return exit code, duration, passed/failed counts
+        LG->>Sandbox: Dispatch patch to sentinelmesh-sandbox container
+        Note over Sandbox: Executes pytest inside restricted container (--network none, --read-only)
+        Sandbox-->>Ver: Return exit code, duration, passed/failed counts
         alt Tests Pass (passed > 0, failed == 0)
             Ver->>DB: Transition incident to "recovered"
             Ver->>DB: Log VERIFICATION_SUCCESS in SHA-256 audit ledger
@@ -226,7 +226,7 @@ flowchart TD
     subgraph Execution["Security & Sandbox Layer"]
         Runner["SandboxRunner (execution.py)"]
         Docker["Docker Engine (Daemon)"]
-        Container["Container: sentinelmesh-sandbox:latest<br/>--network none | --read-only | UID 1000<br/>--pids-limit 64 | --memory 256m | tmpfs /tmp"]
+        Container["Container: sentinelmesh-sandbox:latest (--network none, --read-only, UID 1000, --pids-limit 64, --memory 256m, tmpfs /tmp)"]
     end
 
     subgraph Data["Persistence Layer"]
