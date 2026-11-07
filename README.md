@@ -1,447 +1,706 @@
 # 🛡️ SentinelMesh AI
-### AI-Powered Multi-Agent Software Incident Detection, Repair & Verification System
+
+### AI-Powered Multi-Agent Software Incident Detection, Investigation, Repair, and Verification Platform
 
 <p align="center">
   <b>Detect. Investigate. Repair. Verify.</b>
 </p>
 
 <p align="center">
-  Building trustworthy AI-powered software recovery through collaborative agents and independent verification.
+  <i>Building trustworthy, evidence-backed software recovery through collaborative AI agents and isolated container verification.</i>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Prototype%20Complete-emerald?style=flat-square" alt="Status" />
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=flat-square&logo=fastapi" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/LangGraph-Multi--Agent-orange?style=flat-square" alt="LangGraph" />
+  <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react" alt="React" />
+  <img src="https://img.shields.io/badge/Docker-Isolated%20Sandbox-2496ED?style=flat-square&logo=docker" alt="Docker" />
+  <img src="https://img.shields.io/badge/Tests-99%20Passing-brightgreen?style=flat-square" alt="Tests" />
 </p>
 
 ---
 
-## 📌 1. Project Overview
+## 📑 Table of Contents
 
-**SentinelMesh AI** is an AI-powered multi-agent software incident recovery platform designed to detect software failures, investigate their root causes, generate potential fixes, and independently verify whether those fixes actually work.
-
-Traditional debugging requires developers to manually inspect logs, trace errors, modify code, and execute tests. Although AI coding assistants can suggest solutions, a generated fix is not necessarily a correct fix.
-
-SentinelMesh AI addresses this gap by introducing a coordinated multi-agent workflow that transforms a software incident into a tested and evidence-backed recovery outcome.
-
-The system uses specialized AI agents, controlled code execution, automated testing, and human approval to make AI-assisted software recovery safer and more reliable.
-
-**Our core philosophy:**
-
-> Finding a fix is not enough. We must prove that the fix works.
-
----
-
-## 🎯 2. Problem Statement
-
-When software applications experience failures, developers often need to:
-
-- Inspect application logs and error messages.
-- Identify the root cause of the failure.
-- Analyze relevant source code and configurations.
-- Develop and apply corrective changes.
-- Execute regression tests.
-- Verify that the original issue is resolved without introducing new failures.
-
-These activities are often distributed across disconnected tools and require significant manual effort.
-
-AI coding assistants can generate convincing code fixes, but those fixes may be incorrect, incomplete, or introduce additional problems.
-
-**The fundamental problem is the absence of a reliable, automated process that independently verifies AI-generated software repairs.**
+- [1. Project Overview](#1-project-overview)
+- [2. Problem Statement](#2-problem-statement)
+- [3. Proposed Solution](#3-proposed-solution)
+- [4. Key Features](#4-key-features)
+- [5. Multi-Agent Architecture](#5-multi-agent-architecture)
+- [6. Complete Incident Lifecycle](#6-complete-incident-lifecycle)
+- [7. System Architecture](#7-system-architecture)
+- [8. Technology Stack](#8-technology-stack)
+- [9. Project Repository Structure](#9-project-repository-structure)
+- [10. Prerequisites](#10-prerequisites)
+- [11. Installation and Setup](#11-installation-and-setup)
+- [12. Environment Configuration](#12-environment-configuration)
+- [13. Starting the Application](#13-starting-the-application)
+- [14. Running Automated Tests](#14-running-automated-tests)
+- [15. Executing the Live Demonstration](#15-executing-the-live-demonstration)
+- [16. REST API Reference](#16-rest-api-reference)
+- [17. Docker Sandbox Security Architecture](#17-docker-sandbox-security-architecture)
+- [18. Human-in-the-Loop Governance](#18-human-in-the-loop-governance)
+- [19. Persistence and State Checkpointing](#19-persistence-and-state-checkpointing)
+- [20. Controlled Demonstration Results](#20-controlled-demonstration-results)
+- [21. Implementation Status](#21-implementation-status)
+- [22. Known Limitations and Future Roadmap](#22-known-limitations-and-future-roadmap)
+- [23. Contributing](#23-contributing)
+- [24. License](#24-license)
+- [25. Team and Credits](#25-team-and-credits)
 
 ---
 
-## 💡 3. Proposed Solution
+## 1. Project Overview
 
-SentinelMesh AI introduces a multi-agent architecture where specialized agents collaborate to handle software incidents.
+**SentinelMesh AI** is an AI-powered multi-agent software incident detection, investigation, repair, and verification system. It coordinates four specialized AI agents to monitor telemetry, pinpoint root causes, propose constrained source code patches, enforce mandatory human sign-off, execute patches inside a restricted Docker container, and verify recovery through automated regression testing.
 
-The system follows six major stages:
+Traditional incident response requires engineers to manually triage logs, isolate broken code, synthesize fixes, and run regression suites under high pressure. While large language models can generate plausible code modifications, **a generated fix is not necessarily a correct fix**. Deploying unverified AI code directly into production introduces severe risks of regressions, data loss, and cascading outages.
 
-1. **Detect:** Identify software failures through logs, errors, and service-health information.
-2. **Observe:** Collect relevant application logs, metrics, and code context.
-3. **Investigate:** Analyze evidence and identify probable root causes.
-4. **Repair:** Generate minimal code or configuration patches.
-5. **Verify:** Execute independent regression tests in an isolated environment.
-6. **Report:** Present the recovery status, evidence, and complete audit history.
+SentinelMesh AI addresses this critical reliability gap through a fundamental architectural principle:
 
-Every proposed repair follows a controlled process involving human approval and sandbox execution.
-
-If verification fails, the system rejects the repair or initiates rollback rather than falsely reporting successful recovery.
+> **Finding a candidate fix is insufficient. The system must execute independent tests in an isolated sandbox to prove that the fix resolves the defect without regressions.**
 
 ---
 
-## 🤖 4. Multi-Agent Architecture
+## 2. Problem Statement
 
-SentinelMesh AI uses four specialized agents coordinated through a central orchestration workflow.
+Modern software architectures suffer from recurring incident management challenges:
 
-### 4.1 Observer Agent
-**Responsibility: Incident Detection and Evidence Collection**
-
-- Detect application errors and failures.
-- Collect relevant logs and error traces.
-- Monitor service-health information.
-- Identify the affected application components.
-- Prepare incident context for investigation.
-
-### 4.2 Investigator Agent
-**Responsibility: Root-Cause Analysis**
-
-- Analyze collected logs and error traces.
-- Examine relevant source code and configuration.
-- Identify possible root causes.
-- Rank hypotheses based on available evidence.
-- Provide an explanation of the suspected failure.
-
-### 4.3 Repair Agent
-**Responsibility: Intelligent Repair Generation**
-
-- Generate potential code or configuration fixes.
-- Produce minimal and reviewable patches.
-- Explain the proposed modifications.
-- Prepare changes for human approval.
-- Submit approved patches for controlled execution.
-
-### 4.4 Verifier Agent
-**Responsibility: Independent Repair Verification**
-
-- Execute predefined regression tests.
-- Verify whether the original failure is resolved.
-- Check for newly introduced failures.
-- Evaluate test results and execution evidence.
-- Reject unsuccessful fixes or trigger rollback.
-
-The Verifier focuses on actual execution results rather than simply trusting the Repair Agent's explanation.
+1. **Disconnected Tooling**: Logs, metrics, source repositories, pull requests, and test runners reside in disparate systems, forcing manual context-switching.
+2. **Hallucinated or Flawed AI Fixes**: Coding assistants generate code without execution awareness. Synthetic fixes frequently fail edge cases or break unrelated features.
+3. **Absence of Independent Verification**: AI tools rarely test their own patches against deterministic test suites in isolated runtimes.
+4. **Unsafe Autonomous Execution**: Allowing autonomous agents to apply code directly to host filesystems or production clusters risks catastrophic compromise.
+5. **Lack of Audit Custody**: Incident investigations often lack tamper-evident chronological records of who approved what code change and what test suite validated it.
 
 ---
 
-## ⚙️ 5. End-to-End System Workflow
+## 3. Proposed Solution
 
-The complete system follows this execution pipeline:
+SentinelMesh AI introduces an end-to-end, multi-agent control loop with strict security boundaries:
 
-```text
-        SOFTWARE APPLICATION
-                 |
-                 v
-          INCIDENT DETECTED
-                 |
-                 v
-          OBSERVER AGENT
-       Logs, Errors, Metrics
-                 |
-                 v
-        INVESTIGATOR AGENT
-          Root-Cause Analysis
-                 |
-                 v
-           REPAIR AGENT
-        Generate Code Patch
-                 |
-                 v
-          HUMAN APPROVAL
-                 |
-                 v
-        ISOLATED SANDBOX
-          Docker Execution
-                 |
-                 v
-          VERIFIER AGENT
-       Independent Regression Tests
-                 |
-                 v
-          VERIFICATION
-                 |
-          +------+------+
-          |             |
-       PASSED         FAILED
-          |             |
-          v             v
-    VERIFIED       REJECT / ROLLBACK
-    RECOVERY             |
-          |              |
-          +------+-------+
-                 |
-                 v
-          INCIDENT REPORT
-        Evidence and Audit Trail
+```
+Detect ➔ Investigate ➔ Repair ➔ Human Approval Gate ➔ Isolated Sandbox ➔ Verify ➔ Recover
+```
+
+* **Specialized Agent Collaboration**: Division of labor between Observer, Investigator, Repair, and Verifier agents prevents single-agent blind spots.
+* **Mandatory Human-in-the-Loop Gate**: Autonomous execution halts before patch application. Only authenticated human sign-off can release a patch to the sandbox.
+* **Isolated Container Sandbox**: Untrusted patch code executes strictly within an ephemeral, unprivileged Docker container with zero network access and read-only filesystem mounts.
+* **Deterministic Verification**: Recovery is declared only when independent pytest suites pass (exit code 0, passed > 0, failed = 0).
+* **Crash-Resilient State**: Persistent SQLite checkpointing preserves pending approval states across backend restarts and process recycles.
+
+---
+
+## 4. Key Features
+
+- **Automated Telemetry Ingestion**: Normalizes stack traces, error messages, and log streams into structured incident evidence.
+- **Evidence-Grounded Diagnosis**: Investigator isolates root causes and correlates affected source files with confidence ratings.
+- **Constrained Patch Synthesis**: Repair agent generates minimal unified diffs confined to an allowlist of target files (`PERMITTED_FILE_ALLOWLIST`).
+- **Human Approval Checkpoint**: Pauses LangGraph execution, preventing patch execution without human operator sign-off.
+- **Hardened Docker Sandbox**: Runs containers with `--network none`, `--read-only`, `--user 1000:1000`, `--cap-drop ALL`, `--pids-limit 64`, and `--memory 256m`.
+- **Fail-Closed Verification Engine**: Zero tests, failed assertions, execution timeouts, or Docker engine outages immediately fail closed, blocking false recovery.
+- **Persistent State Checkpointing**: Resumes suspended approval workflows from disk after backend restarts without re-running earlier steps.
+- **Cryptographic Audit Ledger**: Immutable SHA-256 chain records all lifecycle events (`INCIDENT_REGISTERED`, `PATCH_APPROVED`, `VERIFICATION_SUCCESS`).
+- **Real-Time Interactive Dashboard**: React/Tailwind frontend provides live incident triage, diff review, telemetry inspection, and audit ledger tracking.
+
+---
+
+## 5. Multi-Agent Architecture
+
+SentinelMesh AI deploys four specialized agents coordinated through a central LangGraph state graph.
+
+```mermaid
+flowchart LR
+    A["Observer Agent"] -->|"Normalized Evidence"| B["Investigator Agent"]
+    B -->|"Root Cause & Files"| C["Repair Agent"]
+    C -->|"Pending Unified Diff"| D{"Human Gate"}
+    D -->|"Approved"| E["Docker Sandbox"]
+    E -->|"Test Results"| F["Verifier Agent"]
+    F -->|"Pass / Fail"| G["Recovery / Halt"]
+```
+
+### 5.1 Observer Agent
+* **Domain**: Telemetry ingestion and evidence normalization.
+* **Responsibilities**:
+  - Ingests raw error logs, metrics spikes, and stack traces.
+  - Extracts normalized signatures (e.g., `TimeoutError`, `NullPointerException`).
+  - Tags missing information explicitly rather than hallucinating missing context.
+  - Emits `INCIDENT_OBSERVED` events into the audit ledger.
+
+### 5.2 Investigator Agent
+* **Domain**: Root-cause analysis and fault localization.
+* **Responsibilities**:
+  - Analyzes normalized telemetry against repository source snippets.
+  - Identifies probable root-cause mechanisms (e.g., database connection pool exhaustion).
+  - Pinpoints specific source files and line locations.
+  - Computes an estimated confidence rating and outputs alternative hypotheses.
+
+### 5.3 Repair Agent
+* **Domain**: Constrained code patch synthesis.
+* **Responsibilities**:
+  - Generates minimal, human-reviewable unified diffs targeting the failure.
+  - Enforces strict path validation against `PERMITTED_FILE_ALLOWLIST`.
+  - Rejects oversized modifications (>64KB) or malformed diff structures.
+  - Formats original and patched code lines for frontend side-by-side review.
+  - Marks proposed patches with status `pending`.
+
+### 5.4 Verifier Agent
+* **Domain**: Independent regression testing and recovery evaluation.
+* **Responsibilities**:
+  - Validates authenticated human approval provenance before dispatching runs.
+  - Dispatches disposable test suites into the isolated Docker sandbox.
+  - Parses real pytest execution logs, stdout, stderr, exit codes, and test counts.
+  - Evaluates recovery criteria: requires exit code 0, at least one passed test, and zero failures.
+  - Blocks recovery on timeouts, compilation errors, or test assertion failures.
+
+---
+
+## 6. Complete Incident Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Human Operator
+    participant App as Monitored Service
+    participant Obs as Observer Agent
+    participant Inv as Investigator Agent
+    participant Rep as Repair Agent
+    participant LG as LangGraph Orchestrator
+    participant Box as Docker Sandbox
+    participant Ver as Verifier Agent
+    participant DB as Storage & Audit
+
+    App->>Obs: Saturated Request triggers HTTP 500 (Defect)
+    Obs->>DB: Record normalized incident & evidence
+    Obs->>Inv: Telemetry context
+    Inv->>DB: Store root cause & affected source files
+    Inv->>Rep: Investigation diagnosis
+    Rep->>DB: Store candidate patch (Status: pending)
+    Rep->>LG: Reaches Human Approval Gate
+    Note over LG: Workflow pauses. State saved to SQLite checkpoint.
+    
+    alt Operator Rejects Patch
+        User->>LG: Submit decision = "reject"
+        LG->>DB: Mark patch rejected
+        Note over Box: Execution blocked. Sandbox is never invoked.
+    else Operator Approves Patch
+        User->>LG: Submit decision = "approve" (Elena Vance)
+        LG->>DB: Update patch status to "approved" with actor provenance
+        LG->>Box: Dispatch patch to sentinelmesh-sandbox container
+        Note over Box: Executes pytest inside restricted container (--network none, --read-only)
+        Box-->>Ver: Return exit code, duration, passed/failed counts
+        alt Tests Pass (passed > 0, failed == 0)
+            Ver->>DB: Transition incident to "recovered"
+            Ver->>DB: Log VERIFICATION_SUCCESS in SHA-256 audit ledger
+        else Tests Fail or Timeout
+            Ver->>DB: Transition incident to "failed"
+            Ver->>DB: Log VERIFICATION_FAILED in audit ledger
+        end
+    end
 ```
 
 ---
 
-## 🏗️ 6. System Architecture
+## 7. System Architecture
 
-The proposed architecture consists of the following major components:
+```mermaid
+flowchart TD
+    subgraph Client["Presentation Layer (Port 5173)"]
+        UI["React 18 + Tailwind CSS Dashboard"]
+        Views["Incidents | Verification | Fleet Agents | Audit Ledger"]
+    end
 
-### Frontend Layer
-Provides an interface for developers to monitor incidents and review proposed repairs.
+    subgraph Backend["Application Layer (Port 8000)"]
+        API["FastAPI REST API"]
+        Router["Health | Incidents | Patches | Verify | Audit | Demo"]
+        Svc["IncidentService | PatchService | VerificationService"]
+    end
 
-Responsibilities:
-- Incident dashboard.
-- Application health and incident timeline.
-- AI agent activity.
-- Root-cause evidence.
-- Repair workspace.
-- Patch review and approval.
-- Test results and recovery status.
+    subgraph Orchestration["Agent Coordination Layer"]
+        LG["LangGraph StateGraph"]
+        Checkpointer["SQLite Checkpointer (sqlite_checkpointer.py)"]
+        Agents["Observer | Investigator | Repair | Verifier"]
+    end
 
-### Backend Layer
-Acts as the central communication layer between the frontend, agents, database, and sandbox.
+    subgraph Execution["Security & Sandbox Layer"]
+        Runner["SandboxRunner (execution.py)"]
+        Docker["Docker Engine (Daemon)"]
+        Container["Container: sentinelmesh-sandbox:latest<br/>--network none | --read-only | UID 1000<br/>--pids-limit 64 | --memory 256m | tmpfs /tmp"]
+    end
 
-Responsibilities:
-- API management.
-- Incident processing.
-- Agent orchestration.
-- Workflow state management.
-- Approval handling.
-- Sandbox communication.
-- Result reporting.
+    subgraph Data["Persistence Layer"]
+        Mongo["MongoDB / In-Memory Repository"]
+        Audit["Append-Only SHA-256 Audit Trail"]
+        Disk["SQLite Checkpoint Store (*.db)"]
+    end
 
-### AI Agent Layer
-Contains the four specialized agents responsible for detecting, investigating, repairing, and verifying software incidents.
-
-### Execution and Verification Layer
-Provides an isolated environment for executing approved changes and running automated tests.
-
-### Data Layer
-Stores incident information, investigation evidence, proposed patches, execution results, and audit records.
-
----
-
-## 🧰 7. Technology Stack
-
-| Component | Technology | Purpose |
-|---|---|---|
-| Frontend | React | User interface |
-| Frontend Language | TypeScript | Type-safe frontend development |
-| Styling | Tailwind CSS | UI styling |
-| Backend | Python | Core backend and AI logic |
-| API Framework | FastAPI | Backend API development |
-| Agent Orchestration | LangGraph | Multi-agent workflow management |
-| AI Model | LLM API | Reasoning and structured tool calls |
-| Database | MongoDB | Incident and audit data storage |
-| Sandbox | Docker | Isolated code execution |
-| Testing | pytest | Automated testing |
-| Version Control | Git & GitHub | Collaboration and source management |
-
-*The final implementation choices and model provider will be confirmed during development.*
+    UI <-->|"HTTP / REST API"| API
+    API --> Router
+    Router --> Svc
+    Svc <--> Orchestration
+    LG <--> Checkpointer
+    Checkpointer <--> Disk
+    Svc <--> Data
+    Svc --> Runner
+    Runner --> Docker
+    Docker --> Container
+```
 
 ---
 
-## 📊 8. Core Features
+## 8. Technology Stack
 
-### Incident Management
-- Incident detection and tracking.
-- Error and log collection.
-- Incident timeline.
-- Root-cause evidence.
-
-### Multi-Agent Collaboration
-- Specialized AI agents.
-- Coordinated investigation and repair.
-- Shared workflow state.
-- Evidence-based decision-making.
-
-### Intelligent Repair
-- AI-generated code patches.
-- Minimal and reviewable changes.
-- Repair explanations.
-- Human approval.
-
-### Independent Verification
-- Isolated code execution.
-- Automated regression testing.
-- Failure detection.
-- Repair rejection and rollback.
-
-### Audit and Reporting
-- Agent activity history.
-- Investigation evidence.
-- Patch history.
-- Test execution results.
-- Recovery status.
+| Layer | Technology | Version | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | React | `^18.3.1` | Interactive operator user interface |
+| | Vite | `^6.0.7` | Frontend dev server and production bundler |
+| | Tailwind CSS | `^3.4.17` | Utility-first responsive styling and Stitch theme |
+| | Lucide React | `^0.344.0` | UI iconography |
+| **Backend** | Python | `3.10+` | Core backend runtime (validated on Python 3.14) |
+| | FastAPI | `>=0.110.0` | High-performance asynchronous REST API framework |
+| | Uvicorn | `>=0.28.0` | ASGI web server implementation |
+| | Pydantic | `>=2.6.0` | Strict data validation and schema serialization |
+| **Agents & Logic** | LangGraph | `>=0.14.0` | StateGraph multi-agent workflow orchestration |
+| | SQLite (`sqlite3`) | Standard Library | Persistent checkpointing across process reboots |
+| | Google Gemini SDK | Optional | Optional LLM synthesis engine for agents |
+| **Data & Audit** | MongoDB (`pymongo`) | `>=4.6.0` | Document persistence (with graceful in-memory fallback) |
+| | SHA-256 Ledger | Python `hashlib` | Cryptographic audit trail chain of custody |
+| **Sandbox & Test** | Docker Engine | `20.10+` | Rootless, network-isolated container execution |
+| | Python 3.11 Slim | Container Base | Minimal container runtime (`sentinelmesh-sandbox`) |
+| | pytest | `>=8.0.0` | Deterministic unit, security, and regression testing |
 
 ---
 
-## 🔐 9. Safety and Reliability
-
-Safety is a core design principle of SentinelMesh AI.
-
-The proposed system incorporates:
-
-- **Human-in-the-loop approval:** No proposed repair should be applied without the required approval.
-- **Isolated execution:** Approved changes are executed in a controlled sandbox.
-- **Independent verification:** Fixes must pass actual automated tests.
-- **Failure handling:** Unsuccessful repairs must be rejected or rolled back.
-- **Auditability:** Important agent actions and execution results are recorded.
-- **Controlled permissions:** Agents receive only the permissions necessary for their assigned tasks.
-
-SentinelMesh AI aims to prevent unverified AI-generated changes from being treated as successful repairs.
-
----
-
-## 🚀 10. Minimum Viable Product (MVP)
-
-The initial MVP will focus on demonstrating one complete and reproducible software incident recovery scenario.
-
-### Initial MVP Scope
-
-1. Create a sample FastAPI application.
-2. Introduce a known software failure.
-3. Detect the failure and collect relevant logs.
-4. Investigate the root cause using AI agents.
-5. Generate a proposed code patch.
-6. Request human approval.
-7. Execute the approved patch in a Docker sandbox.
-8. Run independent regression tests using pytest.
-9. Display the verification outcome on the dashboard.
-10. Store incident evidence and execution history.
-
-### MVP Success Criteria
-
-The MVP should demonstrate:
-
-- Successful identification of a known failure.
-- Evidence-backed root-cause analysis.
-- Generation of a reviewable repair.
-- Controlled execution of the approved patch.
-- Independent verification of the outcome.
-- Correct handling of failed verification.
-
----
-
-## 📁 11. Proposed Repository Structure
+## 9. Project Repository Structure
 
 ```text
-sentinelmesh-ai/
-│
-├── README.md
-├── LICENSE
-├── .gitignore
-├── .env.example
-│
-├── docs/
-│   ├── project-overview.md
-│   ├── problem-statement.md
-│   ├── proposed-solution.md
-│   ├── system-architecture.md
-│   ├── agent-workflow.md
-│   ├── technology-stack.md
-│   ├── database-design.md
-│   └── development-roadmap.md
-│
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── README.md
-│
-├── backend/
+SENTINELMESH-AI/
+├── agents/                           # Multi-Agent subsystem
+│   ├── common/                       # Base schemas, typed graph state, and event models
+│   ├── investigator/                 # Root-cause analysis and diagnosis agent
+│   ├── observer/                     # Telemetry ingestion and normalization agent
+│   ├── orchestrator/                 # LangGraph workflow, nodes, and checkpointer
+│   │   ├── langgraph_workflow.py     # StateGraph definition and node routers
+│   │   └── sqlite_checkpointer.py    # Thread-safe SQLite checkpoint saver
+│   ├── repair/                       # Diff synthesis and patch validation agent
+│   └── verifier/                     # Verification evaluator and runner interface
+├── backend/                          # FastAPI Application backend
 │   ├── app/
-│   │   ├── main.py
-│   │   ├── api/
-│   │   ├── services/
-│   │   ├── models/
-│   │   └── database/
-│   └── requirements.txt
-│
-├── agents/
-│   ├── observer/
-│   ├── investigator/
-│   ├── repair/
-│   ├── verifier/
-│   └── orchestrator/
-│
-├── sandbox/
-│   ├── Dockerfile
-│   └── execution.py
-│
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── regression/
-│
-└── examples/
-    └── demo-application/
+│   │   ├── api/routes/               # Route endpoints (health, incidents, patches, audit, etc.)
+│   │   ├── core/                     # Configuration and pydantic settings
+│   │   ├── db/                       # MongoDB database connection manager
+│   │   ├── repositories/             # Repository layer (MongoDB + in-memory store)
+│   │   ├── schemas/                  # Pydantic request and response models
+│   │   ├── services/                 # Business logic and verification service
+│   │   └── main.py                   # Application entry point & router mounting
+│   ├── tests/                        # 99 automated pytest suites
+│   ├── requirements.txt              # Backend dependencies
+│   ├── .env.example                  # Backend environment template
+│   └── pytest.ini                    # Pytest configuration
+├── demo_api/                         # Canonical demo microservice
+│   ├── app.py                        # FastAPI demo application (mounted at /demo)
+│   ├── service.py                    # User service with reproducible pool exhaustion bug
+│   └── test_service.py               # Deterministic regression test suite
+├── frontend/                         # React / Vite frontend client
+│   ├── src/
+│   │   ├── components/               # React components (Dashboard, VerificationView, AuditLogs)
+│   │   ├── services/api.js           # API client layer with ApiError propagation
+│   │   ├── data/                     # Mock fallback fixtures for isolated demo mode
+│   │   └── tests/                    # Frontend API reliability test suite
+│   ├── package.json                  # Frontend dependencies
+│   ├── tailwind.config.js            # Tailwind CSS styling configuration
+│   └── vite.config.js                # Vite configuration
+├── sandbox/                          # Docker execution sandbox
+│   ├── Dockerfile                    # Unprivileged UID 1000 container definition
+│   ├── execution.py                  # Docker runner with security parameters & timeouts
+│   ├── models.py                     # SandboxExecutionResult data models
+│   ├── validator.py                  # Allowlist, path traversal, and diff validator
+│   └── workspace.py                  # Disposable workspace provisioning & cleanup
+├── scripts/                          # Automation scripts
+│   ├── preflight_check.py            # System readiness diagnostic utility
+│   └── run_demo_scenario.py          # Automated 11-step end-to-end demo runner
+├── implementation files/             # Architecture specification documentation (00-10)
+├── start_application.ps1             # Unified Windows PowerShell startup orchestrator
+└── README.md                         # Project documentation
 ```
 
-*This is the proposed structure. Directories and modules will be created as implementation progresses.*
+---
+
+## 10. Prerequisites
+
+Before installing SentinelMesh AI, ensure the following software is installed on your Windows machine:
+
+1. **Operating System**: Windows 10 / 11 (64-bit) or Windows Server.
+2. **Python**: Python `3.10` or higher (`3.11` – `3.14` supported).
+3. **Node.js**: Node.js `v18.0.0` or higher (includes `npm`).
+4. **Docker Desktop**: Docker Engine running with Linux container support (WSL2 backend enabled).
+5. **Git**: Git for Windows.
 
 ---
 
-## 🛣️ 12. Development Roadmap
+## 11. Installation and Setup
 
-### Phase 1 — MVP Development
-- Establish project architecture.
-- Develop the sample application.
-- Implement incident detection.
-- Develop the initial multi-agent workflow.
-- Integrate repair generation and verification.
+Open **Windows PowerShell** as Administrator or standard user:
 
-### Phase 2 — Integration and Reliability
-- Connect frontend and backend.
-- Implement the incident dashboard.
-- Improve agent communication.
-- Strengthen sandbox execution.
-- Test failure and rollback scenarios.
+### Step 1: Clone the Repository
+```powershell
+git clone https://github.com/your-username/SENTINELMESH-AI.git
+cd SENTINELMESH-AI
+```
 
-### Phase 3 — Open-Source Development
-- Publish the source code.
-- Prepare installation instructions.
-- Add sample incidents and test cases.
-- Document architecture and workflows.
-- Enable community contributions.
+### Step 2: Set Up Python Virtual Environment
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install -r backend/requirements.txt
+```
 
-### Phase 4 — Future Enhancements
-- Support additional incident types.
-- Integrate GitHub issues and CI pipelines.
-- Expand observability integrations.
-- Improve evidence quality and uncertainty handling.
-- Enhance reliability and scalability.
+### Step 3: Install Frontend Dependencies
+```powershell
+cd frontend
+npm install
+cd ..
+```
 
----
+### Step 4: Build the Docker Sandbox Image
+SentinelMesh AI executes patches inside `sentinelmesh-sandbox:latest`. Build the image once locally:
+```powershell
+docker build -t sentinelmesh-sandbox:latest sandbox/
+```
 
-## 🌍 13. Open-Source Vision
-
-SentinelMesh AI aims to become an open-source platform for safer AI-assisted software debugging and recovery.
-
-Our vision is to help developers and engineering teams move beyond AI-generated suggestions towards evidence-backed and independently verified software repairs.
-
-We aim to make the system reproducible, reviewable, extensible, and community-driven.
+Verify that the image was built successfully:
+```powershell
+docker images sentinelmesh-sandbox
+```
 
 ---
 
-## 👥 14. Team
+## 12. Environment Configuration
 
-**Team Name:** Elite Coders
+### Backend Configuration
+Copy [`backend/.env.example`](file:///c:/Users/punit/OneDrive/Desktop/SENTINELMESH%20AI/SENTINELMESH-AI/backend/.env.example) to `backend/.env`:
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
 
-**Project:** SentinelMesh AI
+Review or edit `backend/.env`:
+```ini
+PROJECT_NAME="SentinelMesh AI"
+ENVIRONMENT="development"
+DEBUG=true
 
-**Hackathon:** CodeSprint 2026
+# Server
+HOST="127.0.0.1"
+PORT=8000
 
-**Track:** Open Innovation
+# CORS
+CORS_ORIGINS="http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,*"
 
-**Team Members:**
+# Database (Graceful in-memory fallback is active if MongoDB is offline)
+MONGODB_URI="mongodb://localhost:27017"
+DATABASE_NAME="sentinelmesh_db"
 
-- Member 1 — Punith Kumar B S
-- Member 2 — Preetam K Shettar
-- Member 3 — Rudramma S T
-- Member 4 — Poornesh K
-- Member 5 — Nityashree H L
+# Optional: Google AI Studio API Key (deterministic fallbacks used if omitted)
+GEMINI_API_KEY=""
+```
+
+### Frontend Configuration
+The frontend configuration is located at `frontend/.env`:
+```ini
+VITE_API_BASE_URL=http://localhost:8000
+```
 
 ---
 
-## 🏆 15. Hackathon
+## 13. Starting the Application
 
-Built for **CodeSprint 2026**, an open innovation hackathon focused on transforming original ideas into functional and impactful solutions.
+### Option A: Unified PowerShell Orchestrator (Recommended)
 
-Our goal is to demonstrate how collaborative AI agents, controlled execution, and independent verification can make software recovery more trustworthy.
+SentinelMesh AI includes a unified automation script for Windows PowerShell:
+
+```powershell
+# Run system preflight diagnostics
+.\start_application.ps1 -CheckOnly
+
+# Run the complete test suite across all modules
+.\start_application.ps1 -RunTests
+
+# Run the live automated end-to-end incident lifecycle demo
+.\start_application.ps1 -RunDemo
+```
+
+### Option B: Manual Multi-Terminal Startup
+
+#### Terminal 1 — Start the FastAPI Backend:
+```powershell
+$env:PYTHONPATH = "backend;$PWD"
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
+```
+* **Interactive API Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Backend Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
+
+#### Terminal 2 — Start the React Frontend:
+```powershell
+npm run dev --prefix frontend
+```
+* **Frontend Web Dashboard**: [http://localhost:5173](http://localhost:5173)
 
 ---
 
-## 📜 License
+## 14. Running Automated Tests
 
-To be finalized before the public open-source release.
+SentinelMesh AI includes comprehensive automated testing across all layers:
+
+### 1. Full Backend Pytest Suite (99 Tests)
+Executes agent unit tests, path traversal security tests, LangGraph state transitions, restart recovery, and Docker container verification:
+```powershell
+pytest -v
+```
+
+```text
+============================= test session starts =============================
+collected 99 items
+
+backend/tests/test_agents.py (12 passed)
+backend/tests/test_audit.py (2 passed)
+backend/tests/test_database.py (3 passed)
+backend/tests/test_demo_app.py (6 passed)
+backend/tests/test_e2e_lifecycle.py (1 passed)
+backend/tests/test_health.py (2 passed)
+backend/tests/test_incidents.py (7 passed)
+backend/tests/test_langgraph_orchestrator.py (4 passed)
+backend/tests/test_patches.py (5 passed)
+backend/tests/test_restart_recovery.py (7 passed)
+backend/tests/test_sandbox.py (36 passed)
+backend/tests/test_verification.py (14 passed)
+
+============================= 99 passed in 58.65s =============================
+```
+
+### 2. Frontend API Reliability Tests (6 Tests)
+Validates error propagation, empty state preservation, and live telemetry consumption:
+```powershell
+node frontend/src/tests/test_api_reliability.js
+```
+
+### 3. Frontend Production Build
+Validates that all JSX modules transform and package with zero syntax or bundling errors:
+```powershell
+npm run build --prefix frontend
+```
+
+---
+
+## 15. Executing the Live Demonstration
+
+SentinelMesh AI provides an automated script that exercises the full incident lifecycle against the running backend:
+
+```powershell
+python scripts/run_demo_scenario.py
+```
+
+### Demonstration Steps Performed:
+1. **Health Verification**: Confirms backend is operational and database layer is ready.
+2. **Defect Trigger**: Invokes `GET /demo/users?pool_timeout=0.05&max_connections=10&current_connections=10` to reproduce an intentional HTTP 500 pool exhaustion bug.
+3. **Observer Ingestion**: Registers incident in the database with raw logs and normalized signature.
+4. **Investigation & Repair**: Analyzes root cause in `demo_api/service.py` and proposes non-blocking patch.
+5. **Safety Gate Check**: Issues a trial rejection; confirms sandbox execution returns `HTTP 400 Bad Request`.
+6. **Authenticated Approval**: Operator signs off (`decision: "approve"`, actor: `Elena Vance`).
+7. **Docker Container Execution**: Dispatches patch to `sentinelmesh-sandbox` with `--network none` and `--read-only`.
+8. **Verifier Result Consumption**: Captures pytest results (3 passed, 0 failed, 0 regressions).
+9. **Recovery Transition**: Incident status transitions to `recovered`.
+10. **Audit Verification**: Validates immutable SHA-256 custody chain.
+11. **Regression Defense**: Attempts an intentional flawed patch; proves verifier catches failure and refuses recovery.
+
+---
+
+## 16. REST API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Service health, version, environment, and database state |
+| `GET` | `/api/incidents` | List all incidents (supports `?status=` and `?severity=` filters) |
+| `POST` | `/api/incidents` | Ingest and register a new software incident |
+| `GET` | `/api/incidents/{id}` | Retrieve single incident details, timeline, and proposed patch |
+| `POST` | `/api/incidents/{id}/analyze` | Trigger autonomous Observer, Investigator, and Repair pipeline |
+| `GET` | `/api/incidents/{id}/evidence` | List normalized telemetry evidence records for incident |
+| `GET` | `/api/incidents/{id}/patches` | List proposed candidate patches for incident |
+| `POST` | `/api/incidents/{id}/approve` | Record human decision (`approve` / `reject`) with actor identity |
+| `POST` | `/api/incidents/{id}/verify` | Dispatch approved patch to isolated Docker sandbox for testing |
+| `GET` | `/api/incidents/{id}/report` | Generate comprehensive post-incident recovery report |
+| `GET` | `/api/incidents/{id}/agent-logs` | Retrieve chronological agent execution telemetry |
+| `GET` | `/api/fleet/agents` | Monitor status and domain telemetry across all 4 fleet agents |
+| `GET` | `/api/verification-runs` | Retrieve historical sandbox execution runs |
+| `GET` | `/api/audit-logs` | Fetch immutable chronological audit ledger records |
+| `GET` | `/demo/users` | Canonical demo microservice (simulates connection pool defect) |
+
+---
+
+## 17. Docker Sandbox Security Architecture
+
+SentinelMesh AI treats all AI-generated code as **untrusted**. Code is never executed directly on the host operating system.
+
+### Implemented Sandbox Controls
+
+| Control | Implementation Flag / Mechanism | Security Benefit |
+| :--- | :--- | :--- |
+| **Network Isolation** | `--network none` | Completely prevents data exfiltration and outbound network calls |
+| **Read-Only Root Filesystem** | `--read-only` | Prevents container runtime tampering and rootkit installation |
+| **Unprivileged User** | `--user 1000:1000` | Container runs as non-root user `appuser` (UID 1000) |
+| **Linux Capability Drop** | `--cap-drop ALL` | Strips all Linux root capabilities (`CAP_NET_RAW`, `CAP_SYS_ADMIN`, etc.) |
+| **Privilege Escalation Block** | `--security-opt no-new-privileges:true` | Prohibits setuid binaries from escalating privileges |
+| **Process Limit (PID Limit)** | `--pids-limit 64` | Prevents fork-bomb denial-of-service attacks inside the container |
+| **Memory Limit** | `--memory 256m` | Prevents host memory exhaustion (OOM killer terminates container with code 137) |
+| **CPU Limit** | `--cpus 1` | Prevents container from saturating host multi-core processor |
+| **Ephemeral Scratchpad** | `--tmpfs /tmp:rw,noexec,nosuid,size=64m` | Provides bounded temporary memory without persistence or execution |
+| **Mounted Workspace** | `-v <snapshot>:/workspace:ro` | Disposable workspace mounted as strictly read-only volume |
+| **Execution Timeout** | `subprocess.TimeoutExpired` (Default: 15s) | Kills and removes container if tests exceed timeout (exit code 124) |
+| **Path Allowlist** | `PERMITTED_FILE_ALLOWLIST` | Rejects modifications to files outside permitted target files |
+| **Path Traversal Defense** | Path normalization & regex checks | Blocks 10+ traversal vectors (`../`, `\`, `/etc/`, null-bytes) |
+| **Fail-Closed Policy** | Docker Engine availability check | If Docker daemon is offline, halts execution; never falls back to host |
+
+> [!WARNING]
+> **Security Caveat**: Docker container isolation significantly mitigates execution risk on the host operating system. However, standard Linux containers share the host OS kernel and do not provide the complete hypervisor-level security boundaries of microVMs (such as Firecracker or gVisor).
+
+---
+
+## 18. Human-in-the-Loop Governance
+
+SentinelMesh AI enforces strict human authorization before any code modification can reach the verification sandbox.
+
+1. **State Pause**: Upon patch synthesis by the Repair Agent, the LangGraph workflow transitions to `patch_pending_approval` and pauses execution at `human_gate`.
+2. **Database Provenance**: The sandbox runner independently queries the database to verify that an approval record exists with status `approved`, an authenticated actor name, and a valid timestamp.
+3. **No State-Only Spoofing**: Supplying mock approval values in client request bodies or LangGraph memory state without a corresponding database record fails closed.
+4. **Rejection Enforcement**: If an operator rejects a patch, the incident transitions to `rejected`. Subsequent verification attempts are blocked with `HTTP 400 Bad Request`.
+
+---
+
+## 19. Persistence and State Checkpointing
+
+### Database Repositories
+The platform uses the Repository Pattern with MongoDB Atlas for persistent storage and an automatic, thread-safe in-memory fallback for local offline environments:
+- `incidents`: Incident definitions, severity, status, and timeline steps.
+- `evidence`: Normalized logs, AST snippets, and error traces.
+- `patches`: Proposed diffs, explanations, and approval metadata.
+- `verification_runs`: Test logs, exit codes, container IDs, and durations.
+- `audit_logs`: SHA-256 hash-chained event logs.
+
+### Persistent LangGraph Checkpointing (`SqliteSaver`)
+To ensure resilience against backend server crashes or reboots during pending approval:
+- Checkpoints are synchronized to an SQLite database (`agents/orchestrator/sqlite_checkpointer.py`).
+- When an incident pauses at `human_gate`, channel states and graph writes are committed to disk.
+- If the backend process terminates, a newly initialized orchestrator instance restores state from SQLite and resumes from the pending approval step without restarting earlier agent nodes.
+
+---
+
+## 20. Controlled Demonstration Results
+
+During controlled verification runs of the demonstration scenario ([`scripts/run_demo_scenario.py`](file:///c:/Users/punit/OneDrive/Desktop/SENTINELMESH%20AI/SENTINELMESH-AI/scripts/run_demo_scenario.py)), SentinelMesh AI verified the resolution of the connection pool defect:
+
+```text
+============================================================
+    SentinelMesh AI — Live Autonomous Incident Lifecycle    
+============================================================
+[Step 1] Verify System Health & Readiness          --> [OK] (Backend operational, DB ready)
+[Step 2] Inject Controlled Defect on /demo/users   --> [OK] (HTTP 500: Database connection timed out)
+[Step 3] Observer Ingestion & Registration         --> [OK] (INC-DEMO-3AD0C9 created)
+[Step 4] Investigator & Repair Pipeline            --> [OK] (Root cause in demo_api/service.py, diff generated)
+[Step 5] Operator Rejection Safety Gate            --> [OK] (Verify rejected patch blocked with HTTP 400)
+[Step 6] Authenticated Human Approval              --> [OK] (Approved by Elena Vance / Lead SRE)
+[Step 7] Docker Sandbox Execution & Verifier       --> [OK] (Container sentinelmesh-sandbox-a3408711f6fd)
+                                                           Duration: 2977ms | Status: PASSED
+                                                           Outcome: 3 Passed, 0 Failed, 0 Regressions
+                                                           • test_get_users_baseline: passed
+                                                           • test_get_users_under_load: passed
+                                                           • test_regression_invariant_check: passed
+[Step 8] Incident Recovery State                   --> [OK] (Transitioned to 'recovered')
+[Step 9] Recovery Report Generation                --> [OK] (Verdict: Fully Recovered & Verified)
+[Step 10] Cryptographic Audit Trail                --> [OK] (19 events chained via SHA-256)
+[Step 11] Flawed Patch Regression Guard            --> [OK] (Intentional bug failed tests; recovery blocked)
+============================================================
+  ✓ Complete SentinelMesh AI Lifecycle Successfully Verified!
+============================================================
+```
+
+> [!NOTE]
+> The results above represent outcomes from the controlled demonstration application (`demo-api`). They validate end-to-end integration across all subsystems under controlled defect conditions.
+
+---
+
+## 21. Implementation Status
+
+| Capability / Module | Status | Verification Evidence |
+| :--- | :---: | :--- |
+| **FastAPI REST API & Health Endpoints** | ✅ Implemented | 16+ endpoints operational; CORS configured |
+| **Observer Agent Telemetry Ingestion** | ✅ Implemented | Normalizes logs and stack traces; tags missing data |
+| **Investigator Agent Root-Cause Analysis**| ✅ Implemented | Grounds diagnosis in source code snippets |
+| **Repair Agent Constrained Patching** | ✅ Implemented | Generates unified diffs; enforces file allowlist |
+| **Verifier Agent Execution Evaluator** | ✅ Implemented | Evaluates actual pytest results; blocks false recovery |
+| **LangGraph Multi-Agent Orchestrator** | ✅ Implemented | Coordinates 9 graph nodes with conditional routing |
+| **Human-in-the-Loop Approval Gate** | ✅ Implemented | Pauses pipeline; validates DB approval provenance |
+| **Docker Sandbox Container Execution** | ✅ Implemented | Rootless, read-only, `--network none`, resource-capped |
+| **Fail-Closed Safety Policy** | ✅ Implemented | Timeouts, Docker offline, zero tests block recovery |
+| **Persistent SQLite State Checkpointing** | ✅ Implemented | Resumes workflows across server reboots |
+| **Cryptographic SHA-256 Audit Ledger** | ✅ Implemented | Tamper-evident record of all workflow events |
+| **React / Tailwind Frontend Dashboard** | ✅ Implemented | Live incident triage, diff viewer, and audit feed |
+| **Canonical Demo Microservice** | ✅ Implemented | Reproducible pool exhaustion defect mounted at `/demo` |
+| **Automated End-to-End Test Suite** | ✅ Implemented | 99 backend tests passing; 6 frontend tests passing |
+
+---
+
+## 22. Known Limitations and Future Roadmap
+
+### Current Limitations
+1. **Docker Engine Dependency**: The sandbox requires Docker Desktop or an active Docker engine on the host. If the engine is unavailable, the fail-closed policy marks the incident as `failed`.
+2. **Pre-configured Allowlist**: Patch targets are restricted to files registered in `PERMITTED_FILE_ALLOWLIST` to prevent arbitrary file tampering.
+3. **No Automatic Production Rollback**: Failed verifications transition incidents to `failed` and halt execution. The system does not attempt autonomous rollback of production deployments.
+
+### Future Roadmap
+- [ ] **MicroVM Isolation**: Add support for Firecracker or gVisor runtimes for hypervisor-level sandboxing.
+- [ ] **Multi-File Patch Generation**: Extend the Repair Agent to coordinate diffs across multiple interdependent services.
+- [ ] **GitHub PR & CI Integration**: Automatically open pull requests with sandbox execution proofs for human review.
+- [ ] **Prometheus & OpenTelemetry Connectors**: Stream live telemetry directly from Kubernetes clusters.
+
+---
+
+## 23. Contributing
+
+Contributions to SentinelMesh AI are welcome! To contribute:
+
+1. Fork the repository on GitHub.
+2. Create a feature branch (`git checkout -b feature/agent-enhancement`).
+3. Ensure all 99 backend tests pass (`pytest -v`).
+4. Ensure the frontend reliability tests and build pass (`npm run test`, `npm run build`).
+5. Commit your changes with descriptive messages (`git commit -m "feat: Add OpenTelemetry trace parser"`).
+6. Push to your branch and open a Pull Request.
+
+---
+
+## 24. License
+
+License selection is currently pending official open-source distribution. All rights are reserved pending final license finalization.
+
+---
+
+## 25. Team and Credits
+
+**Team Name:** Elite Coders  
+**Project:** SentinelMesh AI  
+**Hackathon:** CodeSprint 2026  
+**Track:** Open Innovation  
+
+### Team Members:
+* **Punith Kumar B S**
+* **Preetam K Shettar**
+* **Rudramma S T**
+* **Poornesh K**
+* **Nityashree H L**
 
 ---
 
 <p align="center">
-  <b>SentinelMesh AI</b>
-  <br/>
-  Detect. Investigate. Repair. Verify.
-  <br/><br/>
-  <i>Every action is traceable. Every fix must be tested. Every outcome must be verified.</i>
+  <b>SentinelMesh AI</b> — <i>Detect. Investigate. Repair. Verify.</i><br/>
+  Every action is traceable. Every fix must be tested. Every outcome must be verified.
 </p>
