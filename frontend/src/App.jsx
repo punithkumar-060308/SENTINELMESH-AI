@@ -271,7 +271,9 @@ export default function App() {
                 />
               )}
 
-              {activeTab === 'verification' && <VerificationView showToast={showToast} />}
+              {activeTab === 'verification' && (
+                <VerificationView showToast={showToast} incidents={incidents} />
+              )}
 
               {activeTab === 'audit-logs' && <AuditLogs showToast={showToast} />}
 

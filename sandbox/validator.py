@@ -83,6 +83,27 @@ class PatchValidator:
 
         return normalized
 
+    def validate_approval(self, human_approval: Optional[Dict[str, Any]]) -> bool:
+        """Validate that a valid recorded human approval exists with actor and timestamp."""
+        if not human_approval or not isinstance(human_approval, dict):
+            raise PatchValidationError("Patch execution rejected: No recorded human approval object.")
+
+        decision = str(human_approval.get("decision", "")).lower().strip()
+        if decision not in ["approved", "approve"]:
+            raise PatchValidationError(
+                f"Patch execution rejected: Patch decision is '{decision}', required 'approved'."
+            )
+
+        actor = human_approval.get("actor") or human_approval.get("approved_by") or human_approval.get("decided_by")
+        if not actor or not isinstance(actor, str) or not actor.strip():
+            raise PatchValidationError("Patch execution rejected: Recorded approval lacks a valid human actor.")
+
+        timestamp = human_approval.get("timestamp") or human_approval.get("decided_at") or human_approval.get("approved_at")
+        if not timestamp or not isinstance(timestamp, str) or not timestamp.strip():
+            raise PatchValidationError("Patch execution rejected: Recorded approval lacks an approval timestamp.")
+
+        return True
+
     def validate_patch(
         self,
         patch_data: Dict[str, Any],
@@ -93,14 +114,7 @@ class PatchValidator:
         Confirms human approval, file allowlist, diff size, and structure.
         """
         # 1. Enforce recorded human approval
-        if not human_approval or not isinstance(human_approval, dict):
-            raise PatchValidationError("Patch execution rejected: No recorded human approval object.")
-
-        decision = str(human_approval.get("decision", "")).lower().strip()
-        if decision not in ["approved", "approve"]:
-            raise PatchValidationError(
-                f"Patch execution rejected: Patch decision is '{decision}', required 'approved'."
-            )
+        self.validate_approval(human_approval)
 
         # 2. Extract and validate target file path
         raw_path = patch_data.get("file_path") or patch_data.get("target_file") or ""

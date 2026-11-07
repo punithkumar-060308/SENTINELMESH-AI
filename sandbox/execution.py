@@ -1,12 +1,14 @@
-"""Restricted Execution Runner & Unified Sandbox Service for SentinelMesh AI.
-Adheres strictly to Section 06_SANDBOX_IMPLEMENTATION.md & README.md (sandbox/execution.py):
-"1. Backend confirms the patch exists and is approved.
-2. Patch validator checks file paths, patch format, and size limits.
-3. Sandbox service creates a fresh workspace from a clean source snapshot.
-4. Validated patch is applied inside the isolated workspace.
-5. Sandbox reports application success/failure and a workspace/run identifier.
-6. Verifier runs the trusted test command in the sandbox.
-7. Sandbox is destroyed after evidence/results are collected."
+"""Docker-based Sandbox Execution Runner & Unified Subsystem for SentinelMesh AI.
+Adheres strictly to Section 06_SANDBOX_IMPLEMENTATION.md & Docker Sandbox Integration:
+- Container-based execution using local image `sentinelmesh-sandbox:latest`.
+- Never execute untrusted code directly using Windows host Python.
+- Docker Engine availability check; fail-closed if Docker is unavailable.
+- Strict container restrictions: --network none, --read-only, --user 1000:1000, --cap-drop ALL,
+  --security-opt no-new-privileges:true, --pids-limit 64, --memory 256m, --cpus 1.
+- Read-only workspace volume mount, tmpfs for /tmp.
+- Reliable timeout handling with explicit container termination and cleanup.
+- Parse actual pytest output; never fabricate test results.
+- Require at least 1 passed test and 0 failed tests for success.
 """
 
 import os
@@ -17,38 +19,30 @@ import subprocess
 import uuid
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 
 from sandbox.models import SandboxExecutionResult
 from sandbox.validator import PatchValidator, PatchValidationError
 from sandbox.workspace import SandboxWorkspace
 
-# Ensure backend directory is in sys.path
+# Ensure backend directory is in sys.path for repository imports
 backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend"))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
 try:
-    from app.repositories import verification_repo, agent_log_repo
-    from app.schemas.verification import VerificationRunCreate
+    from app.repositories import verification_repo, agent_log_repo, patch_repo
 except ImportError:
     try:
-        from backend.app.repositories import verification_repo, agent_log_repo
-        from backend.app.schemas.verification import VerificationRunCreate
+        from backend.app.repositories import verification_repo, agent_log_repo, patch_repo
     except ImportError:
         verification_repo = None
         agent_log_repo = None
-        VerificationRunCreate = None
+        patch_repo = None
 
-
-# Sensitive environment variable keys to strip completely from sandbox workload
-SENSITIVE_ENV_PREFIXES = (
-    "AWS_", "GITHUB_", "MONGO", "GEMINI_", "OPENAI_", "ANTHROPIC_",
-    "SECRET", "TOKEN", "PASSWORD", "KEY", "CREDENTIAL", "DATABASE_URL"
-)
-
-# Output safety limit (characters)
 MAX_OUTPUT_CHARS = 10000
+DOCKER_IMAGE_NAME = "sentinelmesh-sandbox:latest"
 
 
 def current_utc_iso() -> str:
@@ -56,58 +50,36 @@ def current_utc_iso() -> str:
 
 
 class SandboxRunner:
-    """Executes trusted test commands strictly within the isolated workspace."""
+    """Executes trusted test commands strictly inside an isolated Docker container."""
 
-    def __init__(self, default_timeout: int = 10):
+    def __init__(self, image_name: str = DOCKER_IMAGE_NAME, default_timeout: int = 15):
+        self.image_name = image_name
         self.default_timeout = default_timeout
-        self.docker_available = self._detect_docker()
 
-    def _detect_docker(self) -> bool:
-        """Check if Docker CLI is available and responsive on the current host."""
+    def check_docker_engine(self) -> Tuple[bool, str]:
+        """
+        Verify Docker Engine availability and responsiveness.
+        Runs `docker info` to ensure the daemon is running, not merely the CLI binary.
+        """
         docker_bin = shutil.which("docker")
         if not docker_bin:
-            return False
+            return False, "Docker CLI binary not found in system PATH."
+
         try:
             res = subprocess.run(
-                ["docker", "--version"],
+                [docker_bin, "info"],
                 capture_output=True,
                 text=True,
-                timeout=3,
+                timeout=4,
             )
-            return res.returncode == 0
-        except Exception:
-            return False
-
-    def build_restricted_environment(self, workspace_dir: str) -> Dict[str, str]:
-        """
-        Build an isolated, sanitized environment block.
-        Strips all host credentials, secrets, API keys, and blocks outbound network proxies.
-        """
-        clean_env = {}
-
-        # Preserve only essential system variables required to execute the runtime
-        safe_keys = {
-            "SYSTEMROOT", "WINDIR", "PATH", "TMP", "TEMP",
-            "COMSPEC", "PATHEXT", "PYTHONPATH", "LANG", "LC_ALL"
-        }
-
-        for k, v in os.environ.items():
-            k_upper = k.upper()
-            if any(k_upper.startswith(prefix) or prefix in k_upper for prefix in SENSITIVE_ENV_PREFIXES):
-                continue
-            if k_upper in safe_keys:
-                clean_env[k] = v
-
-        # Configure network isolation: disable outbound HTTP/HTTPS proxies
-        clean_env["HTTP_PROXY"] = "http://127.0.0.1:0"
-        clean_env["HTTPS_PROXY"] = "http://127.0.0.1:0"
-        clean_env["ALL_PROXY"] = "http://127.0.0.1:0"
-        clean_env["NO_PROXY"] = ""
-
-        # Point PYTHONPATH into the isolated workspace directory
-        clean_env["PYTHONPATH"] = workspace_dir
-
-        return clean_env
+            if res.returncode == 0:
+                return True, "Docker Engine is operational."
+            err_msg = (res.stderr or res.stdout or "").strip()
+            return False, f"Docker daemon is not responding (exit code {res.returncode}): {err_msg[:200]}"
+        except subprocess.TimeoutExpired:
+            return False, "Docker Engine health check timed out after 4 seconds."
+        except Exception as e:
+            return False, f"Docker Engine check error: {str(e)}"
 
     def run_trusted_suite(
         self,
@@ -116,23 +88,68 @@ class SandboxRunner:
         timeout_seconds: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
-        Execute the fixed application-configured test suite inside the disposable workspace.
-        Captures real stdout, stderr, exit code, passed/failed test counts, and duration.
+        Execute the fixed application-configured test suite inside a dedicated Docker container.
+        Enforces:
+        - Fail-closed if Docker is unavailable (never falls back to host execution).
+        - Hard network isolation (--network none).
+        - Read-only root and read-only workspace mount.
+        - Non-root user 1000:1000.
+        - Dropped Linux capabilities (--cap-drop ALL).
+        - Memory, CPU, and PID limits.
+        - Reliable container termination on timeout.
         """
         timeout = timeout_seconds or self.default_timeout
         start_time = time.time()
 
-        # Construct fixed trusted command using python -m pytest
-        py_exe = sys.executable
-        cmd = [py_exe, "-m", "pytest", test_file, "-v", "--tb=short"]
+        # 1. Check Docker daemon availability - FAIL CLOSED if not available
+        docker_ok, reason = self.check_docker_engine()
+        if not docker_ok:
+            return {
+                "exit_code": None,
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+                "duration_ms": 0,
+                "stdout": "",
+                "stderr": f"Docker Engine unavailable: {reason}",
+                "timed_out": False,
+                "docker_unavailable": True,
+                "docker_isolated": False,
+                "container_name": None,
+                "tests": [],
+                "error": f"Docker Engine unavailable: {reason}. Fail-closed policy prevents host execution.",
+            }
 
-        clean_env = self.build_restricted_environment(workspace_dir)
+        # 2. Build unique container identifier
+        container_name = f"sentinelmesh-sandbox-{uuid.uuid4().hex[:12]}"
+
+        # Resolve workspace directory path strictly
+        resolved_ws = Path(workspace_dir).resolve()
+        ws_mount_arg = f"{str(resolved_ws)}:/workspace:ro"
+
+        # 3. Assemble restricted docker run command
+        # Note: No host environment variables or API keys are passed to the container
+        docker_cmd = [
+            "docker", "run",
+            "--name", container_name,
+            "--network", "none",
+            "--read-only",
+            "--user", "1000:1000",
+            "--cap-drop", "ALL",
+            "--security-opt", "no-new-privileges:true",
+            "--pids-limit", "64",
+            "--memory", "256m",
+            "--cpus", "1",
+            "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+            "-v", ws_mount_arg,
+            "-w", "/workspace",
+            self.image_name,
+            "pytest", test_file, "-v", "--tb=short", "-o", "cache_dir=/tmp/.pytest_cache",
+        ]
 
         try:
             proc = subprocess.run(
-                cmd,
-                cwd=workspace_dir,
-                env=clean_env,
+                docker_cmd,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -145,6 +162,17 @@ class SandboxRunner:
 
             passed, failed, skipped, tests_list = self._parse_pytest_output(stdout)
 
+            is_success = (exit_code == 0 and passed > 0 and failed == 0)
+
+            err = None
+            if not is_success:
+                if exit_code != 0:
+                    err = stderr or stdout or f"Test process exited with non-zero code {exit_code}."
+                elif passed == 0 and failed == 0:
+                    err = "Zero tests were collected or executed in the container."
+                else:
+                    err = f"{failed} test(s) failed during sandbox execution."
+
             return {
                 "exit_code": exit_code,
                 "passed": passed,
@@ -154,15 +182,17 @@ class SandboxRunner:
                 "stdout": stdout,
                 "stderr": stderr,
                 "timed_out": False,
+                "docker_unavailable": False,
+                "docker_isolated": True,
+                "container_name": container_name,
                 "tests": tests_list,
-                "error": stderr if exit_code != 0 else None,
+                "error": err,
             }
 
-        except subprocess.TimeoutExpired as e:
+        except subprocess.TimeoutExpired:
             duration_ms = int((time.time() - start_time) * 1000)
-            stdout = ((e.stdout or "") if isinstance(e.stdout, str) else "")[:MAX_OUTPUT_CHARS]
-            stderr = ((e.stderr or "") if isinstance(e.stderr, str) else "")[:MAX_OUTPUT_CHARS]
-            error_msg = f"Execution timed out after {timeout} seconds. Workload process terminated."
+            # Actively terminate the running container
+            self._terminate_container(container_name)
 
             return {
                 "exit_code": 124,
@@ -170,11 +200,14 @@ class SandboxRunner:
                 "failed": 1,
                 "skipped": 0,
                 "duration_ms": duration_ms,
-                "stdout": stdout,
-                "stderr": f"{stderr}\n{error_msg}".strip(),
+                "stdout": "",
+                "stderr": f"Execution timed out after {timeout} seconds. Container {container_name} terminated.",
                 "timed_out": True,
-                "tests": [{"name": "RegressionTest.SandboxExecutionTimeout", "status": "failed", "duration": f"{duration_ms}ms"}],
-                "error": error_msg,
+                "docker_unavailable": False,
+                "docker_isolated": True,
+                "container_name": container_name,
+                "tests": [],
+                "error": f"Execution timed out after {timeout} seconds. Container was terminated.",
             }
 
         except Exception as e:
@@ -188,16 +221,51 @@ class SandboxRunner:
                 "stdout": "",
                 "stderr": str(e),
                 "timed_out": False,
-                "tests": [{"name": "RegressionTest.ExecutionError", "status": "failed", "duration": "0ms"}],
-                "error": f"Failed to execute sandbox process: {str(e)}",
+                "docker_unavailable": False,
+                "docker_isolated": False,
+                "container_name": container_name,
+                "tests": [],
+                "error": f"Failed to execute Docker container: {str(e)}",
             }
 
+        finally:
+            # Unconditional cleanup of container instance
+            self._remove_container(container_name)
+
+    def _terminate_container(self, container_name: str):
+        """Forcefully stop a running container on timeout."""
+        try:
+            subprocess.run(
+                ["docker", "stop", "-t", "1", container_name],
+                capture_output=True,
+                timeout=5,
+            )
+        except Exception:
+            pass
+
+    def _remove_container(self, container_name: str):
+        """Remove container to ensure no orphaned resources remain."""
+        try:
+            subprocess.run(
+                ["docker", "rm", "-f", container_name],
+                capture_output=True,
+                timeout=5,
+            )
+        except Exception:
+            pass
+
     def _parse_pytest_output(self, output: str) -> Tuple[int, int, int, list]:
-        """Deterministically parse pytest output into test counts and structured test records."""
+        """
+        Deterministically parse pytest output into test counts and structured test records.
+        Never fabricates test items when output is empty or zero tests were collected.
+        """
         passed = 0
         failed = 0
         skipped = 0
         tests_list = []
+
+        if not output:
+            return 0, 0, 0, []
 
         # Find test case lines like "demo_api/test_service.py::test_get_users_baseline PASSED"
         for line in output.splitlines():
@@ -223,28 +291,13 @@ class SandboxRunner:
         if s_match:
             skipped = int(s_match.group(1))
 
-        # Default fallback test item if list is empty
-        if not tests_list:
-            if passed > 0:
-                tests_list.append({
-                    "name": "RegressionTest.baselineInvariantCheck()",
-                    "status": "passed",
-                    "duration": "110ms"
-                })
-            if failed > 0:
-                tests_list.append({
-                    "name": "RegressionTest.underLoadVerification()",
-                    "status": "failed",
-                    "duration": "130ms"
-                })
-
         return passed, failed, skipped, tests_list
 
 
 class SandboxService:
-    """Orchestrates patch validation, disposable workspace lifecycle, and test execution."""
+    """Orchestrates patch validation, disposable workspace lifecycle, and Docker test execution."""
 
-    def __init__(self, default_timeout: int = 10):
+    def __init__(self, default_timeout: int = 15):
         self.validator = PatchValidator()
         self.runner = SandboxRunner(default_timeout=default_timeout)
 
@@ -252,23 +305,40 @@ class SandboxService:
         self,
         incident_id: str,
         patch_data: Dict[str, Any],
-        human_approval: Dict[str, Any],
+        human_approval: Optional[Dict[str, Any]] = None,
         timeout_seconds: Optional[int] = None,
-        test_file: str = "demo_api/test_service.py",
+        test_file: Optional[str] = None,
         persist_results: bool = True,
     ) -> SandboxExecutionResult:
         """
-        Execute full sandbox lifecycle for an approved patch:
-        Validates patch -> Spawns disposable workspace -> Applies diff -> Runs test suite -> Cleans up.
+        Complete verification flow:
+        1. Independently retrieve and validate persisted human approval from the database.
+        2. Validate patch security rules, file allowlist, and size limits.
+        3. Create disposable workspace.
+        4. Apply patch inside disposable workspace.
+        5. Execute trusted test suite in isolated Docker container.
+        6. Destroy disposable workspace and clean up container.
+        7. Persist structured results.
         """
-        started_at = current_utc_iso()
-        patch_id = patch_data.get("id") or f"PAT-{incident_id.replace('INC-', '')}"
         run_id = f"VR-{uuid.uuid4().hex[:6].upper()}"
+        started_at = current_utc_iso()
+        patch_id = patch_data.get("id") or patch_data.get("patch_id")
 
-        # 1. Enforce Human Gate Check
-        decision = str((human_approval or {}).get("decision", "")).lower().strip()
-        if decision not in ["approved", "approve"]:
-            err_msg = f"Sandbox execution rejected: Human approval decision was '{decision}', required 'approved'."
+        if not patch_id:
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId="UNKNOWN",
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error="Verification rejected: Missing patch identifier. Cannot retrieve persisted approval record.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # 1. Independently query the database for persisted human approval record
+        if not patch_repo:
             return SandboxExecutionResult(
                 runId=run_id,
                 incidentId=incident_id,
@@ -276,13 +346,114 @@ class SandboxService:
                 status="failed",
                 startedAt=started_at,
                 completedAt=current_utc_iso(),
-                error=err_msg,
+                error="Verification rejected: Patch repository unavailable. Cannot verify persisted human approval.",
+                dockerIsolated=False,
                 cleanedUp=True,
             )
 
-        # 2. Validate patch with PatchValidator
+        persisted_patch = patch_repo.get_by_id(patch_id)
+        if not persisted_patch:
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId=patch_id,
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error=f"Verification rejected: No persisted patch record found in database for patch ID '{patch_id}'. Fail-closed.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # Validate incident ID matches
+        persisted_inc = persisted_patch.get("incident_id")
+        if not persisted_inc or persisted_inc != incident_id:
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId=patch_id,
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error=f"Verification rejected: Patch incident mismatch. Persisted incident '{persisted_inc}' != '{incident_id}'.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # Validate persisted decision is approved
+        persisted_decision = str(persisted_patch.get("decision") or persisted_patch.get("status") or "").lower().strip()
+        if persisted_decision not in ["approved", "approve"]:
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId=patch_id,
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error=f"Verification rejected: Patch '{patch_id}' has unapproved persisted decision '{persisted_decision}'. Fail-closed.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # Validate persisted actor
+        persisted_actor = (
+            persisted_patch.get("approved_by")
+            or persisted_patch.get("actor")
+            or persisted_patch.get("decided_by")
+        )
+        if not persisted_actor or not isinstance(persisted_actor, str) or not persisted_actor.strip():
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId=patch_id,
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error=f"Verification rejected: Persisted approval record for patch '{patch_id}' lacks a valid actor identity.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # Validate persisted approval timestamp
+        persisted_timestamp = persisted_patch.get("decided_at") or persisted_patch.get("approved_at")
+        if not persisted_timestamp or not isinstance(persisted_timestamp, str) or not persisted_timestamp.strip():
+            return SandboxExecutionResult(
+                runId=run_id,
+                incidentId=incident_id,
+                patchId=patch_id,
+                status="failed",
+                startedAt=started_at,
+                completedAt=current_utc_iso(),
+                error=f"Verification rejected: Persisted approval record for patch '{patch_id}' lacks an approval timestamp.",
+                dockerIsolated=False,
+                cleanedUp=True,
+            )
+
+        # Do not trust human_decision supplied only through LangGraph state
+        if human_approval and isinstance(human_approval, dict):
+            caller_decision = str(human_approval.get("decision", "")).lower().strip()
+            if caller_decision not in ["approved", "approve"]:
+                return SandboxExecutionResult(
+                    runId=run_id,
+                    incidentId=incident_id,
+                    patchId=patch_id,
+                    status="failed",
+                    startedAt=started_at,
+                    completedAt=current_utc_iso(),
+                    error=f"Verification rejected: Caller passed unapproved decision '{caller_decision}'.",
+                    dockerIsolated=False,
+                    cleanedUp=True,
+                )
+
+        authoritative_approval = {
+            "decision": "approved",
+            "actor": str(persisted_actor).strip(),
+            "timestamp": str(persisted_timestamp).strip(),
+        }
+
+        # 2. Validate patch security rules, file allowlist, and human approval
         try:
-            val_res = self.validator.validate_patch(patch_data, human_approval)
+            val_res = self.validator.validate_patch(patch_data, authoritative_approval)
             target_file = val_res.target_file
         except PatchValidationError as e:
             return SandboxExecutionResult(
@@ -293,6 +464,7 @@ class SandboxService:
                 startedAt=started_at,
                 completedAt=current_utc_iso(),
                 error=f"Patch validation failed: {str(e)}",
+                dockerIsolated=False,
                 cleanedUp=True,
             )
 
@@ -314,6 +486,7 @@ class SandboxService:
                     startedAt=started_at,
                     completedAt=current_utc_iso(),
                     error="Failed to apply diff cleanly to target file.",
+                    dockerIsolated=False,
                     cleanedUp=True,
                 )
 
@@ -325,7 +498,7 @@ class SandboxService:
                 else:
                     effective_test_file = "demo_api/test_service.py"
 
-            # 5. Execute trusted test suite in the isolated sandbox
+            # 4. Execute trusted test suite in isolated Docker container
             exec_res = self.runner.run_trusted_suite(
                 workspace_dir=workspace.workspace_dir,
                 test_file=effective_test_file,
@@ -333,18 +506,26 @@ class SandboxService:
             )
 
         finally:
-            # 6. Guaranteed workspace destruction and cleanup
+            # 5. Guaranteed workspace destruction and cleanup
             workspace.cleanup()
 
         completed_at = current_utc_iso()
 
         # Determine overall verification status
-        if exec_res.get("timed_out"):
+        if exec_res.get("docker_unavailable"):
+            final_status = "docker_unavailable"
+        elif exec_res.get("timed_out"):
             final_status = "timed_out"
-        elif exec_res["exit_code"] == 0 and exec_res["failed"] == 0 and (exec_res["passed"] > 0 or not exec_res["failed"]):
+        elif exec_res.get("exit_code") == 0 and exec_res.get("passed", 0) > 0 and exec_res.get("failed", 0) == 0:
             final_status = "passed"
         else:
             final_status = "failed"
+
+        is_docker_isolated = bool(exec_res.get("docker_isolated"))
+        isolated_env = (
+            "mesh-docker-isolated (Docker rootless / restricted container)"
+            if is_docker_isolated else "none (unisolated / failed)"
+        )
 
         result = SandboxExecutionResult(
             runId=run_id,
@@ -352,23 +533,25 @@ class SandboxService:
             patchId=patch_id,
             status=final_status,
             changedFiles=workspace.applied_files,
-            exitCode=exec_res["exit_code"],
-            stdoutSummary=exec_res["stdout"][:2000],
-            stderrSummary=exec_res["stderr"][:2000],
+            exitCode=exec_res.get("exit_code"),
+            stdoutSummary=(exec_res.get("stdout") or "")[:2000],
+            stderrSummary=(exec_res.get("stderr") or "")[:2000],
             startedAt=started_at,
             completedAt=completed_at,
-            durationMs=exec_res["duration_ms"],
-            passedCount=exec_res["passed"],
-            failedCount=exec_res["failed"],
-            skippedCount=exec_res["skipped"],
+            durationMs=exec_res.get("duration_ms", 0),
+            passedCount=exec_res.get("passed", 0),
+            failedCount=exec_res.get("failed", 0),
+            skippedCount=exec_res.get("skipped", 0),
             tests=exec_res.get("tests", []),
-            isolatedEnv="mesh-sandbox-isolated (Docker rootless / restricted)",
+            isolatedEnv=isolated_env,
+            dockerIsolated=is_docker_isolated,
+            containerId=exec_res.get("container_name"),
             timedOut=bool(exec_res.get("timed_out")),
             error=exec_res.get("error"),
             cleanedUp=True,
         )
 
-        # 7. Persist run results in repositories if requested
+        # 6. Persist run results in repositories if requested
         if persist_results:
             self._persist_run(result, incident_id, patch_id)
 
@@ -380,6 +563,8 @@ class SandboxService:
             if verification_repo:
                 run_dict = {
                     "id": result.run_id,
+                    "run_id": result.run_id,
+                    "container_id": result.container_id,
                     "incident_id": incident_id,
                     "patch_id": patch_id,
                     "target_file": result.changed_files[0] if result.changed_files else "demo_api/service.py",
@@ -391,7 +576,10 @@ class SandboxService:
                     "completed_at": result.completed_at,
                     "environment": result.isolated_env,
                     "tests": result.tests,
-                    "test_output_summary": f"{result.passed_count} passed, {result.failed_count} failed in isolated sandbox.",
+                    "test_output_summary": (
+                        f"Docker container {result.container_id or 'sandbox'}: {result.passed_count} passed, "
+                        f"{result.failed_count} failed."
+                    ),
                 }
                 verification_repo.create(run_dict)
 
@@ -401,8 +589,8 @@ class SandboxService:
                     "incident_id": incident_id,
                     "agent_name": "Verifier Agent",
                     "status": "completed" if result.status == "passed" else "failed",
-                    "input_summary": f"Approved patch {patch_id} evaluated in isolated sandbox.",
-                    "output_summary": f"Sandbox execution {result.status}: {result.passed_count} passed, {result.failed_count} failed.",
+                    "input_summary": f"Approved patch {patch_id} evaluated in Docker sandbox container.",
+                    "output_summary": f"Docker execution {result.status}: {result.passed_count} passed, {result.failed_count} failed.",
                     "error": result.error,
                 })
         except Exception as e:

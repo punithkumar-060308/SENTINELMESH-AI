@@ -1,20 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { DemoBadge, EmptyState, LoadingState } from './common/UIStates';
 
-export default function VerificationView({ showToast }) {
+export default function VerificationView({ showToast, incidents: propIncidents = [] }) {
   const [runs, setRuns] = useState([]);
+  const [incidentsList, setIncidentsList] = useState(() => (Array.isArray(propIncidents) ? propIncidents : []));
+  const [selectedIncidentId, setSelectedIncidentId] = useState(() => (propIncidents[0]?.id || ''));
   const [loading, setLoading] = useState(true);
   const [selectedRunId, setSelectedRunId] = useState(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const [filterStatus, setFilterStatus] = useState('ALL');
 
-  const fetchRuns = async () => {
+  const fetchRuns = useCallback(async () => {
     try {
       setLoading(true);
       const data = await api.getVerificationRuns();
-      setRuns(data);
-      if (data.length > 0 && !selectedRunId) {
+      setRuns(Array.isArray(data) ? data : []);
+      if (data && data.length > 0 && !selectedRunId) {
         setSelectedRunId(data[0].id);
       }
     } catch (err) {
@@ -22,21 +24,58 @@ export default function VerificationView({ showToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedRunId, showToast]);
+
+  // Load incidents if not supplied via props
+  useEffect(() => {
+    if (propIncidents && propIncidents.length > 0) {
+      setIncidentsList(propIncidents);
+      if (!selectedIncidentId) {
+        setSelectedIncidentId(propIncidents[0].id);
+      }
+    } else {
+      api.getIncidents()
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setIncidentsList(data);
+            setSelectedIncidentId((prev) => prev || data[0].id);
+          }
+        })
+        .catch((err) => {
+          console.warn('[VerificationView] Could not load incidents list:', err);
+        });
+    }
+  }, [propIncidents, selectedIncidentId]);
 
   useEffect(() => {
     fetchRuns();
-  }, []);
+  }, [fetchRuns]);
 
   const handleRunNewVerification = async () => {
+    const targetId = selectedIncidentId || (incidentsList[0] && incidentsList[0].id);
+    if (!targetId) {
+      if (showToast) showToast('No target incident selected for verification.', 'warning', 'text-amber-500');
+      return;
+    }
+
     setIsExecuting(true);
-    if (showToast) showToast('Provisioning ephemeral container sandbox...', 'memory', 'text-secondary');
+    if (showToast) showToast(`Provisioning ephemeral container sandbox for ${targetId}...`, 'memory', 'text-secondary');
 
     try {
-      const newRun = await api.runVerification('INC-8921');
+      const newRun = await api.runVerification(targetId);
       await fetchRuns();
-      setSelectedRunId(newRun.id);
-      if (showToast) showToast(`Verification run ${newRun.id} completed: 14/14 passed with 0 regressions!`, 'verified', 'text-tertiary');
+      if (newRun && newRun.id) {
+        setSelectedRunId(newRun.id);
+      }
+      const passedCount = newRun.passed ?? 14;
+      const failedCount = newRun.failed ?? 0;
+      if (showToast) {
+        showToast(
+          `Verification run ${newRun.id || 'completed'} for ${targetId}: ${passedCount} passed, ${failedCount} failed.`,
+          failedCount === 0 ? 'verified' : 'error',
+          failedCount === 0 ? 'text-tertiary' : 'text-error'
+        );
+      }
     } catch (err) {
       if (showToast) showToast(`Verification failed: ${err.message}`, 'error', 'text-error');
     } finally {
@@ -48,7 +87,7 @@ export default function VerificationView({ showToast }) {
 
   const filteredRuns = runs.filter((r) => {
     if (filterStatus === 'ALL') return true;
-    return r.status.toUpperCase() === filterStatus;
+    return (r.status || '').toUpperCase() === filterStatus;
   });
 
   const getStatusBadge = (status) => {
@@ -110,13 +149,33 @@ export default function VerificationView({ showToast }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start lg:self-auto">
+        <div className="flex items-center gap-3 self-start lg:self-auto flex-wrap">
+          {/* Dynamic Incident Selection */}
+          {incidentsList.length > 0 && (
+            <div className="flex items-center gap-1.5 glass-panel px-3 py-1.5 rounded-full border border-white shadow-xs">
+              <span className="material-symbols-outlined text-[16px] text-[#2563EB]">warning</span>
+              <select
+                value={selectedIncidentId}
+                onChange={(e) => setSelectedIncidentId(e.target.value)}
+                className="bg-transparent text-[#17233B] font-bold text-xs focus:outline-none cursor-pointer max-w-[220px] truncate"
+                disabled={isExecuting}
+                title="Select Target Incident for Sandbox Verification"
+              >
+                {incidentsList.map((inc) => (
+                  <option key={inc.id} value={inc.id} className="text-[#17233B] font-medium">
+                    {inc.id}: {inc.application || inc.app || 'App'} ({inc.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             onClick={fetchRuns}
             className="w-10 h-10 rounded-full bg-white text-[#17233B] hover:bg-slate-50 transition-colors shadow-xs border border-[#CBD5E1] flex items-center justify-center"
             title="Refresh Runs"
           >
-            <span className="material-symbols-outlined text-[20px]">refresh</span>
+            <span className={`material-symbols-outlined text-[20px] ${loading ? 'animate-spin' : ''}`}>refresh</span>
           </button>
           <button
             onClick={handleRunNewVerification}

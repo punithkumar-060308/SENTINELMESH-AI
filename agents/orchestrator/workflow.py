@@ -120,7 +120,7 @@ class SentinelMeshOrchestrator:
         self,
         state: WorkflowState,
         decision: str,  # 'approve' or 'reject'
-        actor: str = "Elena Vance (Staff SRE)",
+        actor: str = "Human Operator",
         notes: str = "",
     ) -> WorkflowState:
         """Step 4: Human-in-the-Loop decision gate.

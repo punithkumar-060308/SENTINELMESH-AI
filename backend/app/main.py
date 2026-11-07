@@ -70,6 +70,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
             "error": True,
             "status_code": exc.status_code,
             "message": exc.detail,
+            "detail": exc.detail,
         },
     )
 
@@ -94,6 +95,14 @@ app.include_router(patches_router)
 app.include_router(agents_router)
 app.include_router(verification_router)
 app.include_router(audit_router)
+
+# Mount canonical demo service under /demo for unified hackathon evaluation
+try:
+    from demo_api.app import demo_app
+    app.mount("/demo", demo_app)
+    logger.info("Canonical demo service mounted under /demo")
+except Exception as e:
+    logger.warning("Could not mount demo_api sub-application: %s", e)
 
 
 @app.get("/", tags=["Root"])

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { api } from '../services/api';
 
 export default function Header({
   onSimulateClick,
@@ -12,6 +13,35 @@ export default function Header({
   onToggleDemoMode
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [agentLogs, setAgentLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState(null);
+
+  const fetchAgentLogs = useCallback(async () => {
+    setLogsLoading(true);
+    setLogsError(null);
+    try {
+      const data = await api.getAgentLogs();
+      setAgentLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn('[Header] Error fetching agent logs:', err);
+      setLogsError(err.message || 'Failed to fetch agent logs');
+      setAgentLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showNotifications) {
+      fetchAgentLogs();
+    }
+  }, [showNotifications, fetchAgentLogs]);
+
+  // Initial fetch on mount to populate unread or count
+  useEffect(() => {
+    fetchAgentLogs();
+  }, [fetchAgentLogs]);
 
   return (
     <header className="fixed top-4 left-4 lg:left-32 right-4 lg:right-6 h-16 z-40 glass-panel rounded-2xl px-4 sm:px-6 flex items-center justify-between gap-3 shadow-glass">
@@ -118,26 +148,102 @@ export default function Header({
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl shadow-xl p-4 z-50 animate-in fade-in duration-150 border border-white">
+            <div className="absolute right-0 top-12 w-80 sm:w-96 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl shadow-xl p-4 z-50 animate-in fade-in duration-150 border border-white">
               <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0] mb-2">
-                <span className="text-xs font-bold text-[#17233B]">Recent Telemetry Events</span>
-                <span className="text-[10px] font-bold text-[#D96D4B] bg-sunset-peach/30 px-2 py-0.5 rounded-full">Demo Stream</span>
+                <span className="text-xs font-bold text-[#17233B]">Recent Agent Telemetry Events</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    isDemoMode
+                      ? 'text-[#D96D4B] bg-sunset-peach/30'
+                      : 'text-emerald-800 bg-emerald-100 border border-emerald-300'
+                  }`}>
+                    {isDemoMode ? 'Demo Stream' : 'Live Stream'}
+                  </span>
+                  <button
+                    onClick={fetchAgentLogs}
+                    className="p-1 rounded-full hover:bg-slate-100 text-[#475569] transition-colors"
+                    title="Refresh Agent Logs"
+                  >
+                    <span className={`material-symbols-outlined text-[14px] ${logsLoading ? 'animate-spin' : ''}`}>
+                      sync
+                    </span>
+                  </button>
+                </div>
               </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto text-xs">
-                <div className="p-2.5 rounded-xl bg-white/90 border border-white flex items-start gap-2 shadow-xs">
-                  <span className="material-symbols-outlined text-sunset-peach text-[18px] shrink-0 mt-0.5">warning</span>
-                  <div>
-                    <div className="font-bold text-[#17233B]">NullPointer in StripeWebhook</div>
-                    <div className="text-[11px] text-[#475569] font-medium mt-0.5">Automated patch proposed by Repair Agent</div>
+
+              <div className="space-y-2 max-h-64 overflow-y-auto text-xs pr-1">
+                {logsLoading && agentLogs.length === 0 ? (
+                  <div className="py-6 flex flex-col items-center justify-center gap-1.5 text-[#64748B]">
+                    <span className="material-symbols-outlined text-[20px] animate-spin text-[#2563EB]">sync</span>
+                    <span className="text-[11px] font-mono">Fetching telemetry events...</span>
                   </div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-white/90 border border-white flex items-start gap-2 shadow-xs">
-                  <span className="material-symbols-outlined text-powder-blue text-[18px] shrink-0 mt-0.5">verified</span>
-                  <div>
-                    <div className="font-bold text-[#17233B]">Verification Passed</div>
-                    <div className="text-[11px] text-[#475569] font-medium mt-0.5">14/14 test suites OK in sandbox-992</div>
+                ) : logsError && agentLogs.length === 0 ? (
+                  <div className="py-4 text-center text-rose-700 font-mono text-[11px] space-y-1">
+                    <p>Failed to load events.</p>
+                    <button
+                      onClick={fetchAgentLogs}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-rose-200 text-rose-800 text-[10px] font-bold hover:bg-rose-50"
+                    >
+                      Retry
+                    </button>
                   </div>
-                </div>
+                ) : agentLogs.length === 0 ? (
+                  <div className="py-6 text-center text-[#64748B] text-xs">
+                    <span className="material-symbols-outlined text-2xl text-[#94A3B8] mb-1">notifications_off</span>
+                    <p className="font-bold text-[#17233B]">No Recent Agent Events</p>
+                    <p className="text-[11px] text-[#64748B] mt-0.5">Autonomous activity will appear here.</p>
+                  </div>
+                ) : (
+                  agentLogs.slice(0, 10).map((log, idx) => {
+                    const agentName = log.agent_name || log.agentName || 'Agent';
+                    const status = (log.status || 'completed').toLowerCase();
+                    const isErr = status === 'failed';
+                    const isVerifier = agentName.toLowerCase().includes('verifier');
+                    const iconName = isErr ? 'warning' : isVerifier ? 'verified' : 'smart_toy';
+                    const iconColor = isErr
+                      ? 'text-rose-600'
+                      : isVerifier
+                      ? 'text-powder-blue'
+                      : 'text-[#2563EB]';
+                    const summary =
+                      log.output_summary ||
+                      log.outputSummary ||
+                      log.input_summary ||
+                      log.inputSummary ||
+                      log.action ||
+                      log.details ||
+                      'Telemetry event recorded';
+                    const timestamp = log.timestamp || log.created_at || 'Just now';
+                    const incidentTag = log.incident_id || log.incidentId;
+
+                    return (
+                      <div
+                        key={log.id || `agent-log-${idx}`}
+                        className="p-2.5 rounded-xl bg-white/90 border border-white flex items-start gap-2.5 shadow-xs hover:bg-white transition-colors"
+                      >
+                        <span className={`material-symbols-outlined text-[18px] shrink-0 mt-0.5 ${iconColor}`}>
+                          {iconName}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-[#17233B] truncate">{agentName}</span>
+                            {incidentTag && (
+                              <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-[#475569] shrink-0">
+                                {incidentTag}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#475569] font-medium mt-0.5 line-clamp-2 leading-relaxed">
+                            {summary}
+                          </div>
+                          <div className="text-[10px] text-[#94A3B8] font-mono mt-1">
+                            {timestamp}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           )}

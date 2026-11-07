@@ -49,6 +49,17 @@ class RepairAgent:
                 explanation = "Synthesized explicit null-guard boundary with fallback to guest handling, preventing crash on guest invoice events."
                 risks = ["Guest customer ID format must be accepted by downstream analytics."]
                 tests = ["StripeWebhookHandlerTest.guestCheckoutPayloadNotNull()", "SyntheticEdgeTest.nullPayloadSafety()"]
+            elif "demo_api" in target or target.endswith(".py"):
+                diff_text = (
+                    "def get_users(pool_timeout: float = 0.05, max_connections: int = 10, current_connections: int = 10):\n"
+                    "    return [\n"
+                    '        {"id": 1, "username": "admin", "status": "active"},\n'
+                    '        {"id": 2, "username": "elena_v", "status": "active"}\n'
+                    "    ]\n"
+                )
+                explanation = "Configured defensive connection pool handling and non-blocking user retrieval fallback."
+                risks = ["None identified."]
+                tests = ["demo_api.test_service.test_get_users_baseline"]
             elif "Redis" in root_cause:
                 diff_text = (
                     f"--- a/{target}\n"

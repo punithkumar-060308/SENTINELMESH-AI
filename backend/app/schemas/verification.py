@@ -18,6 +18,8 @@ class VerificationRunRequest(BaseModel):
 
 class VerificationRunResponse(BaseModel):
     id: str
+    run_id: Optional[str] = Field(None, alias="runId")
+    container_id: Optional[str] = Field(None, alias="containerId")
     incident_id: str = Field(..., alias="incidentId")
     patch_id: Optional[str] = Field(None, alias="patchId")
     target_file: Optional[str] = Field("ServiceHandler", alias="targetFile")

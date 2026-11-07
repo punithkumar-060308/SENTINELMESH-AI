@@ -11,6 +11,7 @@ patch from changing the developer's source checkout."
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
@@ -261,26 +262,29 @@ class SandboxWorkspace:
         """
         Apply a patch to a file strictly within the disposable sandbox workspace.
         Host repository files are NEVER accessed or modified.
+        Uses pathlib.resolve() and relative_to() to prevent traversal attacks.
         """
         if not self.workspace_dir or not os.path.isdir(self.workspace_dir):
             raise RuntimeError("Sandbox workspace has not been created or was already cleaned up.")
 
-        # Resolve path strictly inside workspace
-        full_target_path = os.path.normpath(os.path.join(self.workspace_dir, target_rel_path))
+        ws_path = Path(self.workspace_dir).resolve()
+        target_path = (ws_path / target_rel_path).resolve()
 
-        # Security assertion: path MUST reside inside workspace_dir
-        if not full_target_path.startswith(os.path.normpath(self.workspace_dir)):
-            raise PermissionError(f"Attempted write outside sandbox directory: '{full_target_path}'")
+        # Strict containment verification using pathlib.relative_to()
+        try:
+            target_path.relative_to(ws_path)
+        except ValueError:
+            raise PermissionError(f"Attempted write outside sandbox directory: '{target_path}'")
 
-        os.makedirs(os.path.dirname(full_target_path), exist_ok=True)
+        full_target_str = str(target_path)
+        os.makedirs(os.path.dirname(full_target_str), exist_ok=True)
 
-        # If file does not exist in workspace, create baseline
-        if not os.path.exists(full_target_path):
-            with open(full_target_path, "w", encoding="utf-8") as f:
-                f.write(DEMO_API_SERVICE_UNPATCHED)
+        # Strict snapshot check: Target file must exist in workspace snapshot
+        if not os.path.exists(full_target_str):
+            raise FileNotFoundError(f"Target file '{target_rel_path}' does not exist in workspace snapshot.")
 
         # Apply patch diff
-        applied = self._apply_unified_or_content_patch(full_target_path, diff_text)
+        applied = self._apply_unified_or_content_patch(full_target_str, diff_text)
         if applied:
             self.applied_files.append(target_rel_path)
             try:

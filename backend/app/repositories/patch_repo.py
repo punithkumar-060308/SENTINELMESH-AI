@@ -93,3 +93,25 @@ class PatchRepository(BaseRepository):
             self.collection.update_one({"id": patch_id}, {"$set": existing}, upsert=True)
 
         return existing
+
+    def update_status(
+        self,
+        patch_id: str,
+        status: str,
+        decision: Optional[str] = None,
+        actor: Optional[str] = None,
+        reason: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        dec = decision or ("approved" if status == "approved" else "rejected")
+        updates: Dict[str, Any] = {
+            "status": status,
+            "decision": dec,
+            "decided_at": now_iso,
+        }
+        if actor:
+            updates["actor"] = actor
+            updates["approved_by"] = actor
+        if reason:
+            updates["decision_notes"] = reason
+        return self.update(patch_id, updates)

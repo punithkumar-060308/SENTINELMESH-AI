@@ -28,8 +28,9 @@ class PatchService:
         decision: str,
         notes: Optional[str] = "",
         reason: Optional[str] = "",
-        actor: str = "Human Operator (Elena Vance)",
+        actor: Optional[str] = "Human Operator",
     ) -> PatchDecisionResponse:
+        resolved_actor = (actor or "").strip() or "Human Operator"
         # Normalize decision
         decision = decision.lower().strip()
         if decision not in ["approve", "reject"]:
@@ -68,19 +69,22 @@ class PatchService:
             incident_status = "approved"
             msg = notes or "Human approval signed. Patch approved for sandbox application."
 
-            # Update patch record
+            # Update patch record with persisted human approval details
             if target_patch:
                 self.patch_repo.update(target_patch_id, {
                     "status": "approved",
-                    "decision": "approve",
+                    "decision": "approved",
+                    "actor": resolved_actor,
+                    "approved_by": resolved_actor,
                     "decided_at": now_iso,
+                    "decision_notes": msg,
                 })
 
             # Update incident
             timeline = incident.get("timeline", [])
             timeline.append({
                 "agent": "Human Gate",
-                "action": f"Approved patch {target_patch_id} ({actor})",
+                "action": f"Approved patch {target_patch_id} ({resolved_actor})",
                 "timestamp": datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
                 "status": "completed",
             })
@@ -91,6 +95,8 @@ class PatchService:
 
             self.incident_repo.update(incident_id, {
                 "status": incident_status,
+                "approved_by": resolved_actor,
+                "approved_at": now_iso,
                 "pipeline_agent": "Sandbox Agent (Awaiting isolated application & verification)",
                 "active_step": 5,
                 "proposed_patch": proposed_patch,
@@ -99,7 +105,7 @@ class PatchService:
 
             # Record audit log
             audit_service.record_event(
-                agent=actor,
+                agent=resolved_actor,
                 action="PATCH_APPROVED",
                 incident_id=incident_id,
                 status="completed",
@@ -125,14 +131,17 @@ class PatchService:
             if target_patch:
                 self.patch_repo.update(target_patch_id, {
                     "status": "rejected",
-                    "decision": "reject",
+                    "decision": "rejected",
+                    "actor": resolved_actor,
+                    "approved_by": resolved_actor,
                     "decided_at": now_iso,
+                    "decision_notes": msg,
                 })
 
             timeline = incident.get("timeline", [])
             timeline.append({
                 "agent": "Human Gate",
-                "action": f"Rejected patch {target_patch_id} ({actor})",
+                "action": f"Rejected patch {target_patch_id} ({resolved_actor})",
                 "timestamp": datetime.now(timezone.utc).strftime("%H:%M:%S UTC"),
                 "status": "completed",
             })

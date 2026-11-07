@@ -23,6 +23,8 @@ class PatchProposal(BaseModel):
     decision: Optional[str] = None
     decided_at: Optional[str] = Field(None, alias="decidedAt")
     applied_at: Optional[str] = Field(None, alias="appliedAt")
+    actor: Optional[str] = None
+    approved_by: Optional[str] = Field(None, alias="approvedBy")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -31,7 +33,7 @@ class PatchDecisionRequest(BaseModel):
     decision: str = Field(..., description="'approve' or 'reject'")
     notes: Optional[str] = Field(None, description="Approval notes")
     reason: Optional[str] = Field(None, description="Rejection reason if rejected")
-    actor: Optional[str] = Field("Human Operator (Elena Vance)", description="Operator name or ID")
+    actor: Optional[str] = Field("Human Operator", description="Operator name or ID")
 
 
 class PatchDecisionResponse(BaseModel):

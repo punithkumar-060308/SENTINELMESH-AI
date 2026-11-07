@@ -25,6 +25,7 @@ if backend_path not in sys.path:
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
+from agents.orchestrator.sqlite_checkpointer import SqliteSaver
 
 from agents.common.schemas import (
     ObserverInput,
@@ -310,13 +311,17 @@ class LangGraphOrchestratorNodes:
             }
 
         decision = decision_data.get("decision", "").lower().strip()
-        actor = decision_data.get("actor", "Elena Vance (Staff SRE)")
+        actor = (decision_data.get("actor") or decision_data.get("approved_by") or "").strip() or "Human Operator"
         notes = decision_data.get("notes", "")
 
         is_approved = decision in ["approve", "approved"]
         action = "PATCH_APPROVED" if is_approved else "PATCH_REJECTED"
         new_status = "approved" if is_approved else "rejected"
         decision_data["decision"] = new_status
+        decision_data["actor"] = actor
+        now_iso = current_utc_iso()
+        if not decision_data.get("timestamp"):
+            decision_data["timestamp"] = now_iso
 
         gate_event = AgentActivityEvent(
             event_id=f"EVT-HITL-{uuid.uuid4().hex[:8].upper()}",
@@ -328,11 +333,18 @@ class LangGraphOrchestratorNodes:
         )
         events.append(gate_event.model_dump())
 
-        # Update patch status in repository
+        # Update patch status and human approval details in repository
         patch_id = state.get("patch_id")
         if patch_repo and patch_id:
             try:
-                patch_repo.update_status(patch_id, new_status, reason=notes)
+                patch_repo.update(patch_id, {
+                    "status": new_status,
+                    "decision": new_status,
+                    "actor": actor,
+                    "approved_by": actor,
+                    "decided_at": now_iso,
+                    "decision_notes": notes,
+                })
             except Exception:
                 pass
 
@@ -373,31 +385,51 @@ class LangGraphOrchestratorNodes:
             }
 
         patch_prop = state.get("patch_proposal") or {}
-        patch_file = patch_prop.get("target_file") or "demo_api/service.py"
-        diff_content = patch_prop.get("diff") or "def get_users(): pass"
+        patch_file = patch_prop.get("target_file") or patch_prop.get("file_path")
+        diff_content = patch_prop.get("diff") or patch_prop.get("patch_content")
+        patch_id = state.get("patch_id") or patch_prop.get("id")
+
+        if not patch_file or not diff_content or not patch_id:
+            return {
+                **state,
+                "error": "Sandbox execution aborted: Missing target file, patch ID, or diff content.",
+                "workflow_status": "failed",
+                "current_step": "sandbox_blocked",
+            }
+
+        # Security check: Must have genuine approved human decision
+        approval = state.get("human_decision")
+        if not approval or str(approval.get("decision", "")).lower() not in ["approve", "approved"]:
+            return {
+                **state,
+                "error": "Sandbox execution blocked: Missing or unapproved human gate record.",
+                "workflow_status": "failed",
+                "current_step": "sandbox_blocked",
+            }
 
         if state.get("simulate_verification_failure"):
             diff_content = "// Deliberate verification failure\nthrow new RuntimeException('Forced failure');"
 
         from sandbox import sandbox_service
         patch_data = {
-            "id": state.get("patch_id", f"PAT-{incident_id.replace('INC-', '')}"),
+            "id": patch_id,
             "file_path": patch_file,
             "diff": diff_content,
         }
 
-        # Run genuine sandbox execution
+        # Run genuine Docker sandbox execution
         sandbox_res = sandbox_service.execute_patch_verification(
             incident_id=incident_id,
             patch_data=patch_data,
-            human_approval=state.get("human_decision") or {"decision": "approved"},
-            timeout_seconds=10,
+            human_approval=approval,
+            timeout_seconds=15,
             persist_results=True,
         )
 
         res_dict = sandbox_res.model_dump()
         res_dict["applied"] = True
-        res_dict["container_id"] = sandbox_res.run_id
+        res_dict["run_id"] = sandbox_res.run_id
+        res_dict["container_id"] = sandbox_res.container_id
         res_dict["target_file"] = patch_file
         res_dict["status"] = "ready_for_verification" if sandbox_res.status == "passed" else sandbox_res.status
 
@@ -418,14 +450,14 @@ class LangGraphOrchestratorNodes:
         }
 
     def verifier_node(self, state: OrchestratorGraphState) -> OrchestratorGraphState:
-        """Step 6: Verifier Agent executes independent tests against sandbox."""
+        """Step 6: Verifier Agent executes independent verification based on actual Docker results."""
         incident_id = state["incident_id"]
         patch_id = state.get("patch_id", f"PAT-{incident_id.replace('INC-', '')}")
         events = list(state.get("agent_events") or [])
 
         # Security check: MUST have approved decision
         approval = state.get("human_decision") or {}
-        if approval.get("decision") not in ["approve", "approved"]:
+        if str(approval.get("decision", "")).lower() not in ["approve", "approved"]:
             return {
                 **state,
                 "error": "Verifier aborted: Human approval check failed.",
@@ -434,24 +466,68 @@ class LangGraphOrchestratorNodes:
             }
 
         try:
-            ver_input = VerifierInput(
-                incident_id=incident_id,
-                patch_id=patch_id,
-                human_approval=approval,
-                test_command="pytest",
-                test_suite="tests/",
-                timeout_seconds=30,
+            # Consume actual structured Docker sandbox execution results
+            sandbox_res = state.get("sandbox_result") or {}
+            passed = sandbox_res.get("passed_count", 0)
+            failed = sandbox_res.get("failed_count", 0)
+            skipped = sandbox_res.get("skipped_count", 0)
+            exit_code = sandbox_res.get("exit_code")
+            duration_ms = sandbox_res.get("duration_ms", 0)
+            docker_isolated = bool(sandbox_res.get("docker_isolated", False))
+            timed_out = bool(sandbox_res.get("timed_out", False))
+            status = sandbox_res.get("status")
+            sim_failure = bool(state.get("simulate_verification_failure"))
+
+            # Verification integrity check:
+            # Requires genuine Docker execution, passed > 0, failed == 0, exit_code == 0, not timed out
+            is_success = (
+                status in ["passed", "ready_for_verification"]
+                and docker_isolated is True
+                and exit_code == 0
+                and passed > 0
+                and failed == 0
+                and not timed_out
+                and not sim_failure
+                and not sandbox_res.get("error")
             )
 
-            # Check if synthetic simulation flags or sandbox results indicate success/failure
-            sandbox_status = (state.get("sandbox_result") or {}).get("status")
-            mock_success = (sandbox_status in ["passed", "ready_for_verification"]) and not state.get("simulate_verification_failure")
-            mock_failure = not mock_success
+            test_run_status = "passed" if is_success else "failed"
+            final_verdict = "verified_recovery" if is_success else "failed"
 
-            output, event = self.verifier.verify(
-                ver_input,
-                mock_synthetic_success=mock_success,
-                mock_synthetic_failure=mock_failure,
+            output = VerifierOutput(
+                test_run_status=test_run_status,
+                passed=passed,
+                failed=failed if is_success else (failed if failed > 0 else 1),
+                skipped=skipped,
+                exit_code=exit_code if exit_code is not None else (0 if is_success else 1),
+                duration_ms=sandbox_res.get("duration_ms", 0),
+                test_output=sandbox_res.get("stdout_summary") or sandbox_res.get("stderr_summary") or f"Docker sandbox test execution: {passed} passed, {failed} failed.",
+                original_failure_resolved=is_success,
+                regression_tests_passed=is_success,
+                final_verification_result=final_verdict,
+            )
+
+            action = "VERIFICATION_SUCCESS" if is_success else "VERIFICATION_FAILED"
+            details = (
+                f"Docker verification {final_verdict}: {passed} passed, {output.failed} failed "
+                f"in {duration_ms}ms (Exit code {output.exit_code})."
+            )
+
+            event = AgentActivityEvent(
+                event_id=f"EVT-VER-{uuid.uuid4().hex[:8].upper()}",
+                incident_id=incident_id,
+                agent_name="Verifier Agent",
+                action=action,
+                details=details,
+                status="completed" if is_success else "failed",
+                metadata={
+                    "patch_id": patch_id,
+                    "test_run_status": test_run_status,
+                    "exit_code": output.exit_code,
+                    "passed": passed,
+                    "failed": output.failed,
+                    "isolated_env": sandbox_res.get("isolated_env", "mesh-docker-isolated"),
+                },
             )
             events.append(event.model_dump())
 
@@ -703,8 +779,15 @@ def build_sentinelmesh_graph(
 class LangGraphOrchestratorService:
     """Service providing high-level invoke and resume APIs for the LangGraph workflow."""
 
-    def __init__(self, checkpointer: Optional[Any] = None):
-        self.checkpointer = checkpointer or MemorySaver()
+    def __init__(self, checkpointer: Optional[Any] = None, db_path: Optional[str] = None):
+        if checkpointer is not None:
+            self.checkpointer = checkpointer
+        elif db_path is not None:
+            self.checkpointer = SqliteSaver(db_path)
+        elif os.environ.get("SENTINELMESH_CHECKPOINT_DB"):
+            self.checkpointer = SqliteSaver(os.environ["SENTINELMESH_CHECKPOINT_DB"])
+        else:
+            self.checkpointer = MemorySaver()
         self.nodes = LangGraphOrchestratorNodes()
         self.graph = build_sentinelmesh_graph(self.nodes, checkpointer=self.checkpointer)
 
@@ -740,11 +823,15 @@ class LangGraphOrchestratorService:
         self,
         incident_id: str,
         decision: str,
-        actor: str = "Elena Vance (Staff SRE)",
+        actor: str = "Human Operator",
         notes: str = "",
         simulate_verification_failure: bool = False,
     ) -> OrchestratorGraphState:
         """Resume workflow from Human Approval checkpoint with decision."""
+        clean_actor = (actor or "").strip()
+        if not clean_actor:
+            raise ValueError("Human approval requires a valid actor identity (non-empty).")
+
         config = {"configurable": {"thread_id": incident_id}}
         current = self.graph.get_state(config)
 
@@ -753,13 +840,47 @@ class LangGraphOrchestratorService:
             "workflow_status": "patch_pending_approval",
         }
 
+        now_iso = current_utc_iso()
+        decision_norm = decision.lower().strip()
+        status_norm = "approved" if decision_norm in ["approve", "approved"] else "rejected"
+
         # Add human decision
         state_values["human_decision"] = {
-            "decision": decision,
-            "actor": actor,
+            "decision": status_norm,
+            "actor": clean_actor,
             "notes": notes,
-            "timestamp": current_utc_iso(),
+            "timestamp": now_iso,
         }
+
+        # Update patch repository directly to ensure persisted approval record exists
+        patch_id = state_values.get("patch_id")
+        if patch_repo:
+            if patch_id:
+                try:
+                    patch_repo.update(patch_id, {
+                        "status": status_norm,
+                        "decision": status_norm,
+                        "actor": clean_actor,
+                        "approved_by": clean_actor,
+                        "decided_at": now_iso,
+                        "decision_notes": notes,
+                    })
+                except Exception:
+                    pass
+            else:
+                patches = patch_repo.list_by_incident(incident_id)
+                for p in patches:
+                    try:
+                        patch_repo.update(p["id"], {
+                            "status": status_norm,
+                            "decision": status_norm,
+                            "actor": clean_actor,
+                            "approved_by": clean_actor,
+                            "decided_at": now_iso,
+                            "decision_notes": notes,
+                        })
+                    except Exception:
+                        pass
 
         if simulate_verification_failure:
             state_values["simulate_verification_failure"] = True
