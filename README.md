@@ -54,7 +54,7 @@
 
 ## 1. Project Overview
 
-**SentinelMesh AI** is an AI-powered multi-agent software incident detection, investigation, repair, and verification system. It coordinates four specialized AI agents to monitor telemetry, pinpoint root causes, propose constrained source code patches, enforce mandatory human sign-off, execute patches inside a restricted Docker container, and verify recovery through automated regression testing.
+**SentinelMesh AI** is an AI-powered multi-agent software incident detection, investigation, repair, and verification system. The current implementation demonstrates the complete lifecycle using a controlled demonstration microservice (`demo-api`), coordinating four specialized AI agents to monitor telemetry, pinpoint root causes, propose constrained source code patches, enforce mandatory human sign-off, execute patches inside a restricted Docker container, and verify recovery through automated regression testing.
 
 Traditional incident response requires engineers to manually triage logs, isolate broken code, synthesize fixes, and run regression suites under high pressure. While large language models can generate plausible code modifications, **a generated fix is not necessarily a correct fix**. Deploying unverified AI code directly into production introduces severe risks of regressions, data loss, and cascading outages.
 
@@ -101,8 +101,20 @@ Detect ➔ Investigate ➔ Repair ➔ Human Approval Gate ➔ Isolated Sandbox �
 - **Hardened Docker Sandbox**: Runs containers with `--network none`, `--read-only`, `--user 1000:1000`, `--cap-drop ALL`, `--pids-limit 64`, and `--memory 256m`.
 - **Fail-Closed Verification Engine**: Zero tests, failed assertions, execution timeouts, or Docker engine outages immediately fail closed, blocking false recovery.
 - **Persistent State Checkpointing**: Resumes suspended approval workflows from disk after backend restarts without re-running earlier steps.
-- **Cryptographic Audit Ledger**: Immutable SHA-256 chain records all lifecycle events (`INCIDENT_REGISTERED`, `PATCH_APPROVED`, `VERIFICATION_SUCCESS`).
+- **Cryptographic Audit Ledger**: Tamper-evident SHA-256 hash-chained audit trail records all lifecycle events (`INCIDENT_REGISTERED`, `PATCH_APPROVED`, `VERIFICATION_SUCCESS`).
 - **Real-Time Interactive Dashboard**: React/Tailwind frontend provides live incident triage, diff review, telemetry inspection, and audit ledger tracking.
+
+### Application Interface and Screenshots
+
+| Interface View | Asset Path | Status | Description |
+| :--- | :--- | :--- | :--- |
+| **System Dashboard** | `docs/assets/screenshots/dashboard.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing incident metrics, active fleet agent cards, and system status --> System metrics, fleet health, and incident timeline |
+| **Incident Triage & Evidence** | `docs/assets/screenshots/incidents.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ with an active incident showing normalized stack traces and evidence --> Normalized error signatures and telemetry evidence |
+| **Human Approval & Patch Review** | `docs/assets/screenshots/patch-review.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing proposed patch diff, file allowlist validation, and approve/reject actions --> Side-by-side diff review and human sign-off gate |
+| **Docker Sandbox Verification** | `docs/assets/screenshots/verification.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing container execution log, duration, and pytest pass results --> Isolated container test execution and regression logs |
+| **Cryptographic Audit Trail** | `docs/assets/screenshots/audit-logs.png` | `Placeholder` | <!-- TODO: Capture http://localhost:5173/ showing chronological SHA-256 hash-chained audit records --> Chronological, hash-chained audit ledger |
+
+<!-- NOTE: Place actual full-resolution PNG captures in the `docs/assets/screenshots/` directory using the filenames above. -->
 
 ---
 
@@ -169,7 +181,7 @@ sequenceDiagram
     participant LG as LangGraph Orchestrator
     participant Sandbox as Docker Sandbox
     participant Ver as Verifier Agent
-    participant DB as Storage & Audit
+    participant DB as Storage and Audit
 
     App->>Obs: Saturated Request triggers HTTP 500 (Defect)
     Obs->>DB: Record normalized incident & evidence
@@ -185,17 +197,17 @@ sequenceDiagram
         LG->>DB: Mark patch rejected
         Note over Sandbox: Execution blocked. Sandbox is never invoked.
     else Operator Approves Patch
-        User->>LG: Submit decision = "approve" (Elena Vance)
+        User->>LG: Submit decision = "approve" (Elena Vance - Demo Operator)
         LG->>DB: Update patch status to "approved" with actor provenance
         LG->>Sandbox: Dispatch patch to sentinelmesh-sandbox container
         Note over Sandbox: Executes pytest inside restricted container (--network none, --read-only)
         Sandbox-->>Ver: Return exit code, duration, passed/failed counts
         alt Tests Pass (passed > 0, failed == 0)
             Ver->>DB: Transition incident to "recovered"
-            Ver->>DB: Log VERIFICATION_SUCCESS in SHA-256 audit ledger
+            Ver->>DB: Log VERIFICATION_SUCCESS in SHA-256 audit trail
         else Tests Fail or Timeout
             Ver->>DB: Transition incident to "failed"
-            Ver->>DB: Log VERIFICATION_FAILED in audit ledger
+            Ver->>DB: Log VERIFICATION_FAILED in SHA-256 audit trail
         end
     end
 ```
@@ -345,7 +357,7 @@ Open **Windows PowerShell** as Administrator or standard user:
 
 ### Step 1: Clone the Repository
 ```powershell
-git clone https://github.com/your-username/SENTINELMESH-AI.git
+git clone https://github.com/punithkumar-060308/SENTINELMESH-AI.git
 cd SENTINELMESH-AI
 ```
 
@@ -380,7 +392,7 @@ docker images sentinelmesh-sandbox
 ## 12. Environment Configuration
 
 ### Backend Configuration
-Copy [`backend/.env.example`](file:///c:/Users/punit/OneDrive/Desktop/SENTINELMESH%20AI/SENTINELMESH-AI/backend/.env.example) to `backend/.env`:
+Copy [`backend/.env.example`](backend/.env.example) to `backend/.env`:
 ```powershell
 Copy-Item backend\.env.example backend\.env
 ```
@@ -395,16 +407,19 @@ DEBUG=true
 HOST="127.0.0.1"
 PORT=8000
 
-# CORS
-CORS_ORIGINS="http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,*"
+# CORS (Configured for local development origins; production deployments must restrict to trusted domains)
+CORS_ORIGINS="http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
 
-# Database (Graceful in-memory fallback is active if MongoDB is offline)
+# Database (Optional local MongoDB instance; in-memory fallback is used if offline)
 MONGODB_URI="mongodb://localhost:27017"
 DATABASE_NAME="sentinelmesh_db"
 
 # Optional: Google AI Studio API Key (deterministic fallbacks used if omitted)
 GEMINI_API_KEY=""
 ```
+
+> [!NOTE]
+> The default configuration permits standard local development origins. Production deployments must configure their actual trusted frontend origins instead of open wildcards.
 
 ### Frontend Configuration
 The frontend configuration is located at `frontend/.env`:
@@ -507,11 +522,11 @@ python scripts/run_demo_scenario.py
 3. **Observer Ingestion**: Registers incident in the database with raw logs and normalized signature.
 4. **Investigation & Repair**: Analyzes root cause in `demo_api/service.py` and proposes non-blocking patch.
 5. **Safety Gate Check**: Issues a trial rejection; confirms sandbox execution returns `HTTP 400 Bad Request`.
-6. **Authenticated Approval**: Operator signs off (`decision: "approve"`, actor: `Elena Vance`).
+6. **Authenticated Approval**: Operator signs off (`decision: "approve"`, actor: `Elena Vance` — seeded demonstration operator identity).
 7. **Docker Container Execution**: Dispatches patch to `sentinelmesh-sandbox` with `--network none` and `--read-only`.
 8. **Verifier Result Consumption**: Captures pytest results (3 passed, 0 failed, 0 regressions).
 9. **Recovery Transition**: Incident status transitions to `recovered`.
-10. **Audit Verification**: Validates immutable SHA-256 custody chain.
+10. **Audit Verification**: Validates tamper-evident SHA-256 custody chain.
 11. **Regression Defense**: Attempts an intentional flawed patch; proves verifier catches failure and refuses recovery.
 
 ---
@@ -533,7 +548,7 @@ python scripts/run_demo_scenario.py
 | `GET` | `/api/incidents/{id}/agent-logs` | Retrieve chronological agent execution telemetry |
 | `GET` | `/api/fleet/agents` | Monitor status and domain telemetry across all 4 fleet agents |
 | `GET` | `/api/verification-runs` | Retrieve historical sandbox execution runs |
-| `GET` | `/api/audit-logs` | Fetch immutable chronological audit ledger records |
+| `GET` | `/api/audit-logs` | Fetch chronological, hash-chained audit records |
 | `GET` | `/demo/users` | Canonical demo microservice (simulates connection pool defect) |
 
 ---
@@ -546,7 +561,7 @@ SentinelMesh AI treats all AI-generated code as **untrusted**. Code is never exe
 
 | Control | Implementation Flag / Mechanism | Security Benefit |
 | :--- | :--- | :--- |
-| **Network Isolation** | `--network none` | Completely prevents data exfiltration and outbound network calls |
+| **Network Isolation** | `--network none` | Disables container network access through Docker's `--network none` configuration |
 | **Read-Only Root Filesystem** | `--read-only` | Prevents container runtime tampering and rootkit installation |
 | **Unprivileged User** | `--user 1000:1000` | Container runs as non-root user `appuser` (UID 1000) |
 | **Linux Capability Drop** | `--cap-drop ALL` | Strips all Linux root capabilities (`CAP_NET_RAW`, `CAP_SYS_ADMIN`, etc.) |
@@ -562,7 +577,7 @@ SentinelMesh AI treats all AI-generated code as **untrusted**. Code is never exe
 | **Fail-Closed Policy** | Docker Engine availability check | If Docker daemon is offline, halts execution; never falls back to host |
 
 > [!WARNING]
-> **Security Caveat**: Docker container isolation significantly mitigates execution risk on the host operating system. However, standard Linux containers share the host OS kernel and do not provide the complete hypervisor-level security boundaries of microVMs (such as Firecracker or gVisor).
+> **Container Isolation Boundary**: Docker isolation provides restricted, ephemeral container execution that shields the host environment from untrusted code. However, standard Linux containers share the host OS kernel and do not provide the complete hypervisor-level security boundaries of microVMs (such as Firecracker or gVisor). Do not treat standard container isolation as production-grade multi-tenant execution.
 
 ---
 
@@ -580,12 +595,15 @@ SentinelMesh AI enforces strict human authorization before any code modification
 ## 19. Persistence and State Checkpointing
 
 ### Database Repositories
-The platform uses the Repository Pattern with MongoDB Atlas for persistent storage and an automatic, thread-safe in-memory fallback for local offline environments:
+The platform uses the Repository Pattern with MongoDB as the optional persistent document store for local development (`mongodb://localhost:27017`), backed by an automatic, thread-safe in-memory fallback whenever MongoDB is offline or unconfigured:
 - `incidents`: Incident definitions, severity, status, and timeline steps.
 - `evidence`: Normalized logs, AST snippets, and error traces.
 - `patches`: Proposed diffs, explanations, and approval metadata.
 - `verification_runs`: Test logs, exit codes, container IDs, and durations.
-- `audit_logs`: SHA-256 hash-chained event logs.
+- `audit_logs`: SHA-256 hash-chained event records.
+
+> [!NOTE]
+> SQLite is used strictly for persistent LangGraph workflow checkpointing (`agents/orchestrator/sqlite_checkpointer.py`) to survive process restarts, not as a replacement for the incident and evidence repositories.
 
 ### Persistent LangGraph Checkpointing (`SqliteSaver`)
 To ensure resilience against backend server crashes or reboots during pending approval:
@@ -597,7 +615,7 @@ To ensure resilience against backend server crashes or reboots during pending ap
 
 ## 20. Controlled Demonstration Results
 
-During controlled verification runs of the demonstration scenario ([`scripts/run_demo_scenario.py`](file:///c:/Users/punit/OneDrive/Desktop/SENTINELMESH%20AI/SENTINELMESH-AI/scripts/run_demo_scenario.py)), SentinelMesh AI verified the resolution of the connection pool defect:
+During controlled verification runs of the demonstration scenario ([`scripts/run_demo_scenario.py`](scripts/run_demo_scenario.py)), SentinelMesh AI verified the resolution of the connection pool defect:
 
 ```text
 ============================================================
@@ -608,7 +626,7 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
 [Step 3] Observer Ingestion & Registration         --> [OK] (INC-DEMO-3AD0C9 created)
 [Step 4] Investigator & Repair Pipeline            --> [OK] (Root cause in demo_api/service.py, diff generated)
 [Step 5] Operator Rejection Safety Gate            --> [OK] (Verify rejected patch blocked with HTTP 400)
-[Step 6] Authenticated Human Approval              --> [OK] (Approved by Elena Vance / Lead SRE)
+[Step 6] Authenticated Human Approval              --> [OK] (Approved by Elena Vance / Seeded Demo Operator)
 [Step 7] Docker Sandbox Execution & Verifier       --> [OK] (Container sentinelmesh-sandbox-a3408711f6fd)
                                                            Duration: 2977ms | Status: PASSED
                                                            Outcome: 3 Passed, 0 Failed, 0 Regressions
@@ -625,7 +643,7 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
 ```
 
 > [!NOTE]
-> The results above represent outcomes from the controlled demonstration application (`demo-api`). They validate end-to-end integration across all subsystems under controlled defect conditions.
+> The current implementation demonstrates autonomous incident recovery against a controlled demonstration microservice (`demo-api`). It is not configured to monitor arbitrary external websites or live Kubernetes production clusters out of the box. Connectors for cluster telemetry (Prometheus / OpenTelemetry) and automated GitHub Pull Request workflows remain targeted in the future roadmap.
 
 ---
 
@@ -655,7 +673,8 @@ During controlled verification runs of the demonstration scenario ([`scripts/run
 ### Current Limitations
 1. **Docker Engine Dependency**: The sandbox requires Docker Desktop or an active Docker engine on the host. If the engine is unavailable, the fail-closed policy marks the incident as `failed`.
 2. **Pre-configured Allowlist**: Patch targets are restricted to files registered in `PERMITTED_FILE_ALLOWLIST` to prevent arbitrary file tampering.
-3. **No Automatic Production Rollback**: Failed verifications transition incidents to `failed` and halt execution. The system does not attempt autonomous rollback of production deployments.
+3. **Controlled Scope**: Demonstrates recovery on the canonical `demo-api` service; live cluster monitoring is planned for future versions.
+4. **No Automatic Production Rollback**: Failed verifications transition incidents to `failed` and halt execution. The system does not attempt autonomous rollback of production deployments.
 
 ### Future Roadmap
 - [ ] **MicroVM Isolation**: Add support for Firecracker or gVisor runtimes for hypervisor-level sandboxing.
@@ -672,7 +691,7 @@ Contributions to SentinelMesh AI are welcome! To contribute:
 1. Fork the repository on GitHub.
 2. Create a feature branch (`git checkout -b feature/agent-enhancement`).
 3. Ensure all 99 backend tests pass (`pytest -v`).
-4. Ensure the frontend reliability tests and build pass (`npm run test`, `npm run build`).
+4. Ensure the frontend reliability tests and build pass (`node frontend/src/tests/test_api_reliability.js` and `npm run build --prefix frontend`).
 5. Commit your changes with descriptive messages (`git commit -m "feat: Add OpenTelemetry trace parser"`).
 6. Push to your branch and open a Pull Request.
 
