@@ -24,54 +24,13 @@ class MongoDBManager:
             self.db = None
             return False
 
-        # Fast socket probe before PyMongo initialization to prevent background thread hangs
-        target_host = "127.0.0.1"
-        target_port = 27017
-
-        if "localhost" not in settings.MONGODB_URI and "127.0.0.1" not in settings.MONGODB_URI:
-            try:
-                # Extract first node hostname from replica set URI (e.g. user:pass@host:port,host2:port/...)
-                host_segment = settings.MONGODB_URI.split("@")[-1].split("/")[0].split(",")[0]
-                if ":" in host_segment:
-                    target_host, port_str = host_segment.split(":")
-                    target_port = int(port_str)
-                else:
-                    target_host = host_segment
-            except Exception:
-                target_host = "127.0.0.1"
-                target_port = 27017
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        try:
-            res = sock.connect_ex((target_host, target_port))
-            if res != 0:
-                logger.info(
-                    "MongoDB target %s:%d not reachable. Falling back to resilient in-memory repository.",
-                    target_host,
-                    target_port,
-                )
-                self.is_connected = False
-                self.db = None
-                return False
-        except Exception as e:
-            logger.info(
-                "MongoDB probe failed for %s (%s). Falling back to in-memory repository.",
-                target_host,
-                str(e),
-            )
-            self.is_connected = False
-            self.db = None
-            return False
-        finally:
-            sock.close()
-
         try:
             logger.info("Attempting to connect to MongoDB at %s...", settings.MONGODB_URI.split("@")[-1])
+            timeout_ms = 8000 if "mongodb.net" in settings.MONGODB_URI else 3000
             self.client = MongoClient(
                 settings.MONGODB_URI,
-                serverSelectionTimeoutMS=2000,
-                connectTimeoutMS=2000,
+                serverSelectionTimeoutMS=timeout_ms,
+                connectTimeoutMS=timeout_ms,
             )
             # Ping to verify connectivity and credentials
             self.client.admin.command("ping")

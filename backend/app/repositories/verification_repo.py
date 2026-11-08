@@ -36,18 +36,14 @@ class VerificationRepository(BaseRepository):
     def list_all(self) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({}, {"_id": 0})
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return list(self._memory_store.values())
 
     def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({"incident_id": incident_id}, {"_id": 0})
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return [v for v in self._memory_store.values() if v.get("incident_id") == incident_id]
 

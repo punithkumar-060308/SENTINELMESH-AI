@@ -3,12 +3,6 @@ import ConfirmDialog from './common/ConfirmDialog';
 import { api } from '../services/api';
 
 export default function IncidentInvestigation({ incident, onBack, onApprovePatch, onRejectPatch, showToast }) {
-  const [auditComment, setAuditComment] = useState('Verified against Stripe API 2024-04 docs. Safe to execute in isolated sandbox.');
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verificationPassed, setVerificationPassed] = useState(false);
-  const [copiedField, setCopiedField] = useState(null);
-  const [dialogState, setDialogState] = useState({ isOpen: false, type: null });
-
   const inc = incident || {
     id: "INC-8921",
     app: "payment-gateway-svc",
@@ -42,6 +36,42 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
     ]
   };
 
+  const CANDIDATE_METADATA = {
+    v1: {
+      id: "v1",
+      name: "Candidate v1 (Optional Wrapper)",
+      strategy: "Optional.ofNullable() wrapper with fallback to guest_customer_id",
+      diffSummary: "-2 lines / +5 lines",
+      risk: "LOW (0.2%)",
+    },
+    v2: {
+      id: "v2",
+      name: "Candidate v2 (Defensive Early Guard)",
+      strategy: "Early return guard clause with isolated guest transaction recording",
+      diffSummary: "-2 lines / +7 lines",
+      risk: "MINIMAL (0.1%)",
+    },
+    v3: {
+      id: "v3",
+      name: "Candidate v3 (Circuit Breaker & DLQ Route)",
+      strategy: "Asynchronous Dead-Letter Queue dispatch with metrics increment and graceful bypass",
+      diffSummary: "-2 lines / +8 lines",
+      risk: "ZERO (0.0%)",
+    },
+  };
+
+  const [auditComment, setAuditComment] = useState('Verified against Stripe API 2024-04 docs. Safe to execute in isolated sandbox.');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationPassed, setVerificationPassed] = useState(inc.status === 'recovered');
+  const [isRejected, setIsRejected] = useState(inc.status === 'rejected');
+  const [isSynthesizingAlternative, setIsSynthesizingAlternative] = useState(false);
+  const [activeCandidate, setActiveCandidate] = useState(inc.status === 'rejected' ? 'v2' : 'v1');
+  const [rejectionReason, setRejectionReason] = useState('Operator requested alternative mitigation approach');
+  const [rejectionList, setRejectionList] = useState([]);
+  const [isEscalatedToSre, setIsEscalatedToSre] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
+  const [dialogState, setDialogState] = useState({ isOpen: false, type: null });
+
   const handleCopy = (text, fieldName) => {
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
@@ -63,9 +93,19 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
 
     if (type === 'approve') {
       setIsVerifying(true);
-      showToast('Patch approved! Verifier Agent triggered in isolated mesh-sandbox-992...', 'rocket_launch', 'text-tertiary');
+      const candName = CANDIDATE_METADATA[activeCandidate]?.name || activeCandidate.toUpperCase();
+      showToast(
+        `${candName} approved! Verifier Agent testing in isolated mesh-sandbox-992...`,
+        'rocket_launch',
+        'text-tertiary'
+      );
       try {
         await api.approvePatch(inc.id, notes);
+        try {
+          await api.runVerification(inc.id);
+        } catch (vErr) {
+          console.warn('[SentinelMesh] Verification trigger note:', vErr.message);
+        }
         setTimeout(async () => {
           setIsVerifying(false);
           setVerificationPassed(true);
@@ -77,13 +117,61 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
         showToast(`Approval failed: ${err.message}`, 'error', 'text-error');
       }
     } else if (type === 'reject') {
-      try {
-        await api.rejectPatch(inc.id, notes);
-        showToast('Patch rejected. Requesting alternative synthesis from Repair Agent...', 'cancel', 'text-error');
-        if (onRejectPatch) onRejectPatch(inc.id);
-      } catch (err) {
-        showToast(`Rejection failed: ${err.message}`, 'error', 'text-error');
+      const reasonText = notes || 'Operator requested alternative mitigation approach';
+      const rejectedCandidate = activeCandidate;
+      const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false }) + ' UTC';
+
+      const newRejectionEntry = {
+        id: `REJ-${Date.now().toString().slice(-4)}`,
+        candidate: rejectedCandidate,
+        candidateTitle: CANDIDATE_METADATA[rejectedCandidate]?.name || `Candidate ${rejectedCandidate.toUpperCase()}`,
+        strategy: CANDIDATE_METADATA[rejectedCandidate]?.strategy || 'Automated code repair',
+        reason: reasonText,
+        notes: notes || reasonText,
+        rejectedAt: timestamp,
+        operator: 'Elena Vance (Primary SRE Lead)',
+        patchId: `PAT-${String(inc?.id || '').replace('INC-', '')}-${rejectedCandidate}`
+      };
+
+      setRejectionList((prev) => [...prev, newRejectionEntry]);
+      setIsRejected(true);
+      setRejectionReason(reasonText);
+
+      // Determine next candidate progression
+      let nextCandidate = null;
+      if (rejectedCandidate === 'v1') nextCandidate = 'v2';
+      else if (rejectedCandidate === 'v2') nextCandidate = 'v3';
+      else nextCandidate = 'escalated';
+
+      if (nextCandidate === 'escalated') {
+        setIsEscalatedToSre(true);
+        showToast('All 3 automated candidates rejected by operator. Escalated to Primary On-Call SRE via PagerDuty!', 'notification_important', 'text-error');
+      } else {
+        setIsSynthesizingAlternative(true);
+        showToast(
+          `Candidate ${rejectedCandidate.toUpperCase()} rejected. Repair Agent synthesizing Candidate ${nextCandidate.toUpperCase()}...`,
+          'cancel',
+          'text-error'
+        );
+
+        setTimeout(() => {
+          setIsSynthesizingAlternative(false);
+          setActiveCandidate(nextCandidate);
+          showToast(
+            `Repair Agent synthesized Alternative Candidate ${nextCandidate.toUpperCase()} (${CANDIDATE_METADATA[nextCandidate]?.name})!`,
+            'auto_fix_high',
+            'text-tertiary'
+          );
+        }, 1400);
       }
+
+      try {
+        await api.rejectPatch(inc.id, reasonText);
+      } catch (err) {
+        console.warn('Backend rejection notice:', err.message);
+      }
+
+      if (onRejectPatch) onRejectPatch(inc.id);
     }
   };
 
@@ -132,6 +220,21 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
                     <span className="material-symbols-outlined text-[16px]">check_circle</span>
                     RECOVERED & CLOSED
                   </span>
+                ) : isEscalatedToSre ? (
+                  <span className="text-rose-700 flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-[16px]">support_agent</span>
+                    ESCALATED TO PRIMARY SRE
+                  </span>
+                ) : isSynthesizingAlternative ? (
+                  <span className="text-amber-700 flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    SYNTHESIZING ALTERNATIVE PATCH...
+                  </span>
+                ) : rejectionList.length > 0 ? (
+                  <span className="text-amber-800 flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-[16px] text-amber-600">auto_fix_high</span>
+                    ALTERNATIVE CANDIDATE READY ({activeCandidate.toUpperCase()})
+                  </span>
                 ) : (
                   <>
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
@@ -179,15 +282,19 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             </button>
             <button
               onClick={handleOpenReject}
-              disabled={verificationPassed}
+              disabled={verificationPassed || isSynthesizingAlternative || isEscalatedToSre}
               className="px-4 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-xs flex items-center gap-2 border border-rose-200 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
-              <span>Reject Patch</span>
+              <span>
+                {rejectionList.length > 0
+                  ? `Reject Candidate ${activeCandidate.toUpperCase()}`
+                  : 'Reject Patch'}
+              </span>
             </button>
             <button
               onClick={handleOpenApprove}
-              disabled={isVerifying || verificationPassed}
+              disabled={isVerifying || verificationPassed || isSynthesizingAlternative || isEscalatedToSre}
               className="px-5 py-2.5 rounded-full bg-[#17233B] hover:bg-[#1e2f4f] text-white font-bold text-xs shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-75"
             >
               {isVerifying ? (
@@ -199,6 +306,11 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
                 <>
                   <span className="material-symbols-outlined text-[18px] text-emerald-400">task_alt</span>
                   <span>Patch Verified & Deployed</span>
+                </>
+              ) : rejectionList.length > 0 ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] text-emerald-400">play_circle</span>
+                  <span>Approve Candidate {activeCandidate.toUpperCase()}</span>
                 </>
               ) : (
                 <>
@@ -620,12 +732,15 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
               <span className="material-symbols-outlined text-[22px] text-[#2563EB]">healing</span>
             </div>
             <div className="flex flex-col min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-lg font-black text-[#17233B]">
                   Proposed Automated Patch
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-powder-blue/30 text-[#17233B] font-mono text-xs font-bold border border-powder-blue/50">
-                  Diff: -2 lines / +5 lines
+                  Diff: {CANDIDATE_METADATA[activeCandidate]?.diffSummary || '-2 lines / +5 lines'}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-[#475569] font-mono text-xs font-bold border border-slate-200">
+                  {CANDIDATE_METADATA[activeCandidate]?.name || activeCandidate.toUpperCase()}
                 </span>
               </div>
               <span className="text-xs text-[#64748B] truncate font-mono mt-0.5">
@@ -641,6 +756,185 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             </span>
           </div>
         </div>
+
+        {/* Candidate Switcher Tab Bar */}
+        {(isRejected || activeCandidate !== 'v1' || rejectionList.length > 0) && (
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-[#64748B] uppercase tracking-wider font-mono mr-1">
+                Patch Candidates:
+              </span>
+
+              {/* Candidate v1 button */}
+              <button
+                type="button"
+                onClick={() => setActiveCandidate('v1')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                  activeCandidate === 'v1'
+                    ? 'bg-[#17233B] text-white shadow-xs'
+                    : rejectionList.some((r) => r.candidate === 'v1')
+                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                    : 'bg-white text-[#475569] hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {rejectionList.some((r) => r.candidate === 'v1') ? (
+                  <span className="material-symbols-outlined text-[15px] text-rose-600">cancel</span>
+                ) : (
+                  <span className="material-symbols-outlined text-[15px]">code</span>
+                )}
+                <span>Candidate v1</span>
+                {rejectionList.some((r) => r.candidate === 'v1') ? (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-rose-200 text-rose-800 rounded-md font-bold">REJECTED</span>
+                ) : activeCandidate === 'v1' ? (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-white/20 rounded-md">VIEWING</span>
+                ) : null}
+              </button>
+
+              {/* Candidate v2 button */}
+              {(activeCandidate === 'v2' || activeCandidate === 'v3' || rejectionList.length > 0) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveCandidate('v2')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                    activeCandidate === 'v2'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : rejectionList.some((r) => r.candidate === 'v2')
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      : 'bg-white text-[#475569] hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {rejectionList.some((r) => r.candidate === 'v2') ? (
+                    <span className="material-symbols-outlined text-[15px] text-rose-600">cancel</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[15px]">auto_fix_high</span>
+                  )}
+                  <span>Candidate v2</span>
+                  {rejectionList.some((r) => r.candidate === 'v2') ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-rose-200 text-rose-800 rounded-md font-bold">REJECTED</span>
+                  ) : activeCandidate === 'v2' ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-white/20 rounded-md">VIEWING</span>
+                  ) : null}
+                </button>
+              )}
+
+              {/* Candidate v3 button */}
+              {(activeCandidate === 'v3' || rejectionList.some((r) => r.candidate === 'v2')) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveCandidate('v3')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                    activeCandidate === 'v3'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : rejectionList.some((r) => r.candidate === 'v3')
+                      ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                      : 'bg-white text-[#475569] hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {rejectionList.some((r) => r.candidate === 'v3') ? (
+                    <span className="material-symbols-outlined text-[15px] text-rose-600">cancel</span>
+                  ) : (
+                    <span className="material-symbols-outlined text-[15px]">alt_route</span>
+                  )}
+                  <span>Candidate v3</span>
+                  {rejectionList.some((r) => r.candidate === 'v3') ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-rose-200 text-rose-800 rounded-md font-bold">REJECTED</span>
+                  ) : activeCandidate === 'v3' ? (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-white/20 rounded-md">VIEWING</span>
+                  ) : null}
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-mono text-[#64748B]">
+              <span>Strategy:</span>
+              <strong className="text-[#17233B]">{CANDIDATE_METADATA[activeCandidate]?.strategy}</strong>
+            </div>
+          </div>
+        )}
+
+        {/* DEDICATED REJECTIONS AUDIT HISTORY LIST */}
+        {rejectionList.length > 0 && (
+          <div className="bg-rose-50/70 rounded-2xl p-5 border border-rose-200/90 flex flex-col gap-3 font-sans">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>
+                <span className="material-symbols-outlined text-[20px] text-rose-700">playlist_remove</span>
+                <h3 className="text-sm font-black text-rose-950 font-mono tracking-tight">
+                  Rejection Audit Ledger & Operator Feedback
+                </h3>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-rose-200 text-rose-900 text-xs font-mono font-bold border border-rose-300">
+                {rejectionList.length} {rejectionList.length === 1 ? 'Candidate Rejected' : 'Candidates Rejected'}
+              </span>
+            </div>
+
+            <p className="text-xs text-rose-800/90 leading-relaxed">
+              Every declined patch candidate is preserved in the immutable mesh ledger with operator rationale to prevent cyclical regression. Click <strong>Inspect Diff</strong> on any row to review that candidate's code.
+            </p>
+
+            <div className="divide-y divide-rose-200/80 border border-rose-200 rounded-xl overflow-hidden bg-white/95">
+              {rejectionList.map((item, idx) => (
+                <div key={item.id || idx} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-rose-50/40 transition-colors">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-700 font-bold font-mono text-[11px] shrink-0 border border-rose-300">
+                      {item.candidate.toUpperCase()} REJECTED
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <strong className="text-[#17233B] font-mono">{item.candidateTitle}</strong>
+                        <span className="text-[#94A3B8]">•</span>
+                        <code className="text-[#2563EB] font-bold text-[11px]">{item.patchId}</code>
+                      </div>
+                      <span className="text-rose-900 font-medium mt-0.5">
+                        Primary Reason: <strong className="text-rose-700 font-bold font-mono">"{item.reason}"</strong>
+                      </span>
+                      {item.notes && item.notes !== item.reason && (
+                        <span className="text-[#64748B] text-[11px] italic mt-0.5">
+                          Operator note: "{item.notes}"
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center font-mono text-[11px]">
+                    <span className="text-[#64748B] flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">schedule</span>
+                      {item.rejectedAt}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCandidate(item.candidate)}
+                      className={`px-3 py-1 rounded-lg border text-xs font-bold font-mono transition-all flex items-center gap-1.5 ${
+                        activeCandidate === item.candidate
+                          ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                          : 'bg-white hover:bg-slate-50 text-[#17233B] border-slate-200'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">visibility</span>
+                      <span>{activeCandidate === item.candidate ? 'Viewing Diff' : 'Inspect Diff'}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isSynthesizingAlternative && (
+          <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-4 animate-pulse">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <span className="material-symbols-outlined text-[24px] animate-spin">sync</span>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider font-mono">
+                Repair Agent Synthesizing Alternative Candidate...
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                Re-analyzing AST syntax tree. Bypassing previous rejected approach to synthesize Candidate {activeCandidate === 'v1' ? 'v2' : 'v3'} ({CANDIDATE_METADATA[activeCandidate === 'v1' ? 'v2' : 'v3']?.strategy}).
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Code Diff Workspace (Split View) */}
         <div className="rounded-2xl overflow-hidden border border-slate-200/90 bg-white shadow-sm font-mono text-xs">
@@ -698,7 +992,11 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             {/* Right Pane: Proposed Patch (Green) */}
             <div className="p-4 overflow-x-auto bg-white">
               <div className="text-[#64748B] font-mono text-[11px] mb-2 px-2 uppercase tracking-wider flex items-center justify-between font-bold">
-                <span>Synthesized Patch (DeepRepair Agent)</span>
+                <span>
+                  {rejectionList.some((r) => r.candidate === activeCandidate)
+                    ? `${CANDIDATE_METADATA[activeCandidate]?.name} (REJECTED)`
+                    : `${CANDIDATE_METADATA[activeCandidate]?.name} (PROPOSED)`}
+                </span>
                 <span className="text-emerald-700">ADDED LINES</span>
               </div>
               <table className="w-full text-left">
@@ -715,38 +1013,132 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
                     <td className="w-8 select-none text-right pr-3 text-[#94A3B8] text-[11px]">141</td>
                     <td className="px-2 py-0.5 text-[#334155] whitespace-pre"> </td>
                   </tr>
-                  <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
-                    <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">142</td>
-                    <td className="px-2 py-0.5 whitespace-pre font-medium">
-                      <span className="text-emerald-700 font-bold">+</span>   String customerId = Optional.ofNullable(payload.getCustomer())
-                    </td>
-                  </tr>
-                  <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
-                    <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">143</td>
-                    <td className="px-2 py-0.5 whitespace-pre font-medium">
-                      <span className="text-emerald-700 font-bold">+</span>           .map(Customer::getId)
-                    </td>
-                  </tr>
-                  <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
-                    <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">144</td>
-                    <td className="px-2 py-0.5 whitespace-pre font-medium">
-                      <span className="text-emerald-700 font-bold">+</span>           .orElseGet(() -&gt; payload.getMetadata().getOrDefault("guest_customer_id", "GUEST_UNKNOWN"));
-                    </td>
-                  </tr>
-                  <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
-                    <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">145</td>
-                    <td className="px-2 py-0.5 whitespace-pre font-medium">
-                      <span className="text-emerald-700 font-bold">+</span>   billingService.recordTransaction(customerId, payload.getAmount());
-                    </td>
-                  </tr>
-                  <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
-                    <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">146</td>
-                    <td className="px-2 py-0.5 whitespace-pre font-medium">
-                      <span className="text-emerald-700 font-bold">+</span>   log.info("Handled webhook event for customer: {'{}'}", customerId);
-                    </td>
-                  </tr>
+                  {activeCandidate === 'v3' ? (
+                    <>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">142</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   if (payload == null || payload.getCustomer() == null) {'{'}
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">143</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       deadLetterQueue.dispatch("DLQ_STRIPE_ORPHAN", payload, "Missing customer entity");
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">144</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       metricsService.incrementCounter("webhook.guest.dlq_routed");
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">145</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       return;
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">146</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   {'}'}
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">147</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   String customerId = payload.getCustomer().getId();
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">148</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   billingService.recordTransaction(customerId, payload.getAmount());
+                        </td>
+                      </tr>
+                    </>
+                  ) : activeCandidate === 'v2' ? (
+                    <>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">142</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   if (payload.getCustomer() == null) {'{'}
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">143</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       String guestId = payload.getMetadata().getOrDefault("guest_id", "GUEST_UNKNOWN");
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">144</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       billingService.recordTransaction(guestId, payload.getAmount());
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">145</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>       return;
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">146</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   {'}'}
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">147</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   String customerId = payload.getCustomer().getId();
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">148</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   billingService.recordTransaction(customerId, payload.getAmount());
+                        </td>
+                      </tr>
+                    </>
+                  ) : (
+                    <>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">142</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   String customerId = Optional.ofNullable(payload.getCustomer())
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">143</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>           .map(Customer::getId)
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">144</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>           .orElseGet(() -&gt; payload.getMetadata().getOrDefault("guest_customer_id", "GUEST_UNKNOWN"));
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">145</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   billingService.recordTransaction(customerId, payload.getAmount());
+                        </td>
+                      </tr>
+                      <tr className="bg-emerald-50/80 text-emerald-950 border-l-4 border-emerald-500">
+                        <td className="w-8 select-none text-right pr-3 text-emerald-700 text-[11px] font-bold">146</td>
+                        <td className="px-2 py-0.5 whitespace-pre font-medium">
+                          <span className="text-emerald-700 font-bold">+</span>   log.info("Handled webhook event for customer: {'{}'}", customerId);
+                        </td>
+                      </tr>
+                    </>
+                  )}
                   <tr className="text-[#64748B] hover:bg-slate-50">
-                    <td className="w-8 select-none text-right pr-3 text-[#94A3B8] text-[11px]">147</td>
+                    <td className="w-8 select-none text-right pr-3 text-[#94A3B8] text-[11px]">{activeCandidate === 'v2' ? 149 : activeCandidate === 'v3' ? 149 : 147}</td>
                     <td className="px-2 py-0.5 text-[#334155] whitespace-pre">{'}'}</td>
                   </tr>
                 </tbody>
@@ -771,36 +1163,45 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
-            <button
-              onClick={handleOpenReject}
-              disabled={verificationPassed}
-              className="px-5 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all shadow-xs flex items-center gap-2 border border-rose-200 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-[18px]">cancel</span>
-              <span>Reject & Request Alternative</span>
-            </button>
-            <button
-              onClick={handleOpenApprove}
-              disabled={isVerifying || verificationPassed}
-              className="px-6 py-2.5 rounded-full bg-[#17233B] hover:bg-[#1e2f4f] text-white text-xs font-bold shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-75"
-            >
-              {isVerifying ? (
-                <>
-                  <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
-                  <span>Running Verifier Agent...</span>
-                </>
-              ) : verificationPassed ? (
-                <>
-                  <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
-                  <span>Patch Verified & Auto-Applied</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[18px] text-emerald-400">verified</span>
-                  <span>Approve Patch & Run Verifier Agent</span>
-                </>
-              )}
-            </button>
+            {isEscalatedToSre ? (
+              <div className="flex items-center gap-2 px-5 py-2.5 bg-rose-100 text-rose-800 rounded-full font-mono text-xs font-bold border border-rose-300 shadow-xs">
+                <span className="material-symbols-outlined text-[18px] text-rose-700">support_agent</span>
+                <span>Max Rejections Reached (3/3) - Escalated to On-Call SRE</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleOpenReject}
+                  disabled={verificationPassed || isSynthesizingAlternative}
+                  className="px-5 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all shadow-xs flex items-center gap-2 border border-rose-200 disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">cancel</span>
+                  <span>{rejectionList.length > 0 ? `Reject Candidate ${activeCandidate.toUpperCase()}` : 'Reject & Request Alternative'}</span>
+                </button>
+                <button
+                  onClick={handleOpenApprove}
+                  disabled={isVerifying || verificationPassed || isSynthesizingAlternative}
+                  className="px-6 py-2.5 rounded-full bg-[#17233B] hover:bg-[#1e2f4f] text-white text-xs font-bold shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-75"
+                >
+                  {isVerifying ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
+                      <span>Running Verifier Agent...</span>
+                    </>
+                  ) : verificationPassed ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] text-emerald-400">check_circle</span>
+                      <span>Patch Verified & Auto-Applied</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] text-emerald-400">verified</span>
+                      <span>Approve Candidate {activeCandidate.toUpperCase()} & Run Verifier</span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -911,10 +1312,10 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             : null
         }
         details={{
-          incidentId: inc.id,
-          patchId: `PAT-${inc.id.replace('INC-', '')}`,
-          service: inc.app,
-          file: inc.sourceFile || 'StripeWebhookHandler.java:142'
+          incidentId: inc?.id || 'INC-8921',
+          patchId: `PAT-${String(inc?.id || '').replace('INC-', '') || '8921'}`,
+          service: inc?.app || inc?.application || 'payment-gateway-svc',
+          file: inc?.sourceFile || 'StripeWebhookHandler.java:142'
         }}
         confirmLabel={dialogState.type === 'approve' ? 'Confirm Approval' : 'Confirm Rejection'}
         requiresNote={dialogState.type === 'approve'}

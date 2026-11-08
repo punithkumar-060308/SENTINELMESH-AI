@@ -49,6 +49,7 @@ export default function SimulateIncidentModal({ isOpen, onClose, onInjectInciden
       setIsInjecting(false);
       onInjectIncident({
         id: `INC-${Math.floor(1000 + Math.random() * 9000)}`,
+        application: scenario.app,
         app: scenario.app,
         version: "v2.14",
         title: scenario.name,
@@ -56,9 +57,9 @@ export default function SimulateIncidentModal({ isOpen, onClose, onInjectInciden
         location: "ChaosInjector.kt:88",
         traceId: Math.random().toString(16).substring(2, 10),
         impact: scenario.impact,
-        severity: scenario.severity,
+        severity: scenario.severity === 'P0' ? 'critical' : scenario.severity === 'P1' ? 'high' : 'medium',
         severityLabel: `${scenario.severity === 'P0' ? 'CRITICAL' : scenario.severity === 'P1' ? 'HIGH' : 'MEDIUM'} (${scenario.severity})`,
-        status: "Investigating",
+        status: "investigating",
         pipelineAgent: "Investigator Agent (parsing traces)",
         detectedTime: "Just now",
         confidence: 94.5,

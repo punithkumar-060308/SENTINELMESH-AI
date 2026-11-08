@@ -166,10 +166,15 @@ export const api = {
    * Simulate / inject an incident
    */
   async simulateIncident(incidentData) {
+    const payload = {
+      ...incidentData,
+      application: incidentData.application || incidentData.app || 'demo-service',
+      app: incidentData.app || incidentData.application || 'demo-service',
+    };
     if (!demoModeOverride && API_BASE_URL) {
       return await request('/api/incidents', {
         method: 'POST',
-        body: JSON.stringify(incidentData),
+        body: JSON.stringify(payload),
       });
     }
 
@@ -415,5 +420,22 @@ export const api = {
   async getPlatformSettings() {
     await mockDelay(100);
     return { ...platformSettings };
+  },
+
+  /**
+   * Purge all incidents and telemetry data
+   */
+  async purgeAllData() {
+    incidentsStore = [];
+    verificationRunsStore = [];
+    auditLogStore = [];
+    if (!demoModeOverride && API_BASE_URL) {
+      try {
+        return await request('/api/incidents/purge', { method: 'DELETE' });
+      } catch (err) {
+        console.warn('Backend purge warning:', err.message);
+      }
+    }
+    return { success: true };
   },
 };

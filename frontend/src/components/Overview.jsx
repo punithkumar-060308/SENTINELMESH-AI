@@ -1,25 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import StatusBadge from './common/StatusBadge';
 import SeverityBadge from './common/SeverityBadge';
 import { DemoBadge, EmptyState } from './common/UIStates';
+import { api } from '../services/api';
 
 export default function Overview({ incidents = [], onSelectIncident, onSimulateClick, onNavigateTab, isDemoMode = false, fleetAgents = [] }) {
-  const [lastRefreshed, setLastRefreshed] = useState('12s ago');
+  const [lastRefreshed, setLastRefreshed] = useState('Just now');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLiveSwarmActive, setIsLiveSwarmActive] = useState(false);
+
+  // Autonomous Swarm Live Cycling
+  useEffect(() => {
+    if (!isLiveSwarmActive) return;
+
+    const scenarios = [
+      { app: "payment-gateway-svc", title: "Stripe Webhook NullPointer in Worker 3", severity: "critical" },
+      { app: "auth-session-worker", title: "Redis Connection Socket Leak", severity: "high" },
+      { app: "inventory-sync-db", title: "PostgreSQL Deadlock on Order Reservation", severity: "high" },
+      { app: "order-fulfillment-api", title: "Unbuffered Heap Buffer Spike (OOMKill)", severity: "medium" },
+    ];
+
+    let step = 0;
+    const interval = setInterval(async () => {
+      const scenario = scenarios[step % scenarios.length];
+      step++;
+
+      try {
+        // Step 1: Ingest incident (increases Active Incidents & Investigating)
+        const inc = await api.simulateIncident({
+          title: scenario.title,
+          application: scenario.app,
+          app: scenario.app,
+          severity: scenario.severity,
+          status: 'investigating'
+        });
+
+        // Step 2: After 3 seconds, Investigator & Repair agents diagnose and synthesize patch (increases Pending Approval)
+        setTimeout(async () => {
+          try {
+            await api.analyzeIncident(inc.id);
+          } catch (e) {}
+
+          // Step 3: After another 3.5 seconds, auto approve and run sandbox verification (increases Verified Recoveries)
+          setTimeout(async () => {
+            try {
+              await api.approvePatch(inc.id, 'Live Swarm automated safe verification approval');
+              await api.runVerification(inc.id);
+            } catch (e) {}
+          }, 3500);
+        }, 3000);
+      } catch (err) {
+        console.warn('Live swarm stream note:', err.message);
+      }
+    }, 8500);
+
+    return () => clearInterval(interval);
+  }, [isLiveSwarmActive]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
       setLastRefreshed('Just now');
-    }, 600);
+    }, 400);
   };
 
   const safeIncidents = Array.isArray(incidents) ? incidents : [];
-  const activeIncidents = safeIncidents.filter(i => i.status !== 'recovered' && i.status !== 'rejected');
-  const investigatingCount = safeIncidents.filter(i => i.status === 'investigating' || i.status === 'detected').length;
+  const activeIncidents = safeIncidents.filter(i => i.status !== 'recovered' && i.status !== 'resolved' && i.status !== 'closed' && i.status !== 'rejected' && i.status !== 'approved');
+  const investigatingCount = safeIncidents.filter(i => i.status === 'investigating' || i.status === 'detected' || i.status === 'running').length;
   const pendingCount = safeIncidents.filter(i => i.status === 'awaiting_approval' || i.status === 'Patch Proposed' || i.status === 'patch_pending_approval').length;
-  const recoveredCount = safeIncidents.filter(i => i.status === 'recovered').length;
+  const recoveredCount = safeIncidents.filter(i => i.status === 'recovered' || i.status === 'resolved' || i.status === 'closed' || i.status === 'approved' || i.status === 'verifying').length;
 
   return (
     <div className="flex flex-col w-full gap-8">
@@ -64,6 +114,20 @@ export default function Overview({ incidents = [], onSelectIncident, onSimulateC
               >
                 <span className="material-symbols-outlined text-[16px] text-sunset-peach">bolt</span>
                 <span>Simulate Incident</span>
+              </button>
+
+              <button
+                onClick={() => setIsLiveSwarmActive(!isLiveSwarmActive)}
+                className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all shadow-xs flex items-center gap-2 border ${
+                  isLiveSwarmActive
+                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-md animate-pulse'
+                    : 'bg-white hover:bg-slate-50 text-[#17233B] border-[#CBD5E1]'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-[16px] ${isLiveSwarmActive ? 'text-white animate-spin' : 'text-emerald-600'}`}>
+                  {isLiveSwarmActive ? 'sync' : 'stream'}
+                </span>
+                <span>{isLiveSwarmActive ? 'Live Swarm: STREAMING ACTIVE' : 'Start Live Swarm Stream'}</span>
               </button>
 
               <button
@@ -121,8 +185,22 @@ export default function Overview({ incidents = [], onSelectIncident, onSimulateC
         </div>
       </div>
 
-      {/* SECTION 2: INCIDENT OVERVIEW CARDS (Section 3.D of new_design.md) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* SECTION 2: INCIDENT OVERVIEW CARDS */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+            <span className="text-xs font-mono font-bold text-[#17233B] uppercase tracking-wider">
+              Live Fleet Reliability Metrics
+            </span>
+          </div>
+          <span className="text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1.5 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+            Live Real-Time Stream Polling (2.5s)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Active Incidents */}
         <div className="p-6 rounded-3xl glass-panel glass-panel-hover flex flex-col justify-between relative overflow-hidden group border border-white">
           <div className="flex items-start justify-between">
@@ -214,6 +292,7 @@ export default function Overview({ incidents = [], onSelectIncident, onSimulateC
             <span className="font-bold text-emerald-800">100% Suites Passed</span>
           </div>
         </div>
+      </div>
       </div>
 
       {/* SECTION 3: MULTI-AGENT SWARM SECTION (Section 3.E of new_design.md) */}

@@ -56,9 +56,7 @@ class AuditRepository(BaseRepository):
     def list_all(self, limit: int = 100) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({}, {"_id": 0}).sort("created_at", -1).limit(limit)
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return sorted(
             list(self._memory_store.values()),
@@ -72,9 +70,7 @@ class AuditRepository(BaseRepository):
                 {"$or": [{"incident_id": incident_id}, {"incident": incident_id}]},
                 {"_id": 0}
             ).sort("created_at", -1).limit(limit)
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         matches = [
             item for item in self._memory_store.values()

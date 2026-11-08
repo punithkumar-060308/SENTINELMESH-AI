@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # Server
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
+    PORT: int = 8001
 
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=True,
