@@ -35,6 +35,10 @@ class IncidentService:
     def create_incident(self, payload: IncidentCreate) -> IncidentResponse:
         data = payload.model_dump(by_alias=False, exclude_none=True)
 
+        app_name = data.get("application") or data.get("app") or "demo-service"
+        data["application"] = app_name
+        data["app"] = app_name
+
         if not data.get("id"):
             import random
             data["id"] = f"INC-{random.randint(1000, 9999)}"
@@ -259,6 +263,21 @@ class IncidentService:
             timelineSteps=incident.get("timeline", []),
             verdict=verdict,
         )
+
+    def purge_all_data(self) -> int:
+        total = 0
+        repos = [self.incident_repo, self.evidence_repo, self.patch_repo, self.verification_repo]
+        for r in repos:
+            if hasattr(r, '_get_collection'):
+                try:
+                    res = r._get_collection().delete_many({})
+                    total += res.deleted_count
+                except Exception:
+                    pass
+            elif hasattr(r, '_items'):
+                total += len(r._items)
+                r._items.clear()
+        return total
 
 
 incident_service = IncidentService()

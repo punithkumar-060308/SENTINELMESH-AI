@@ -121,13 +121,7 @@ class IncidentRepository(BaseRepository):
             if severity:
                 query["severity"] = severity
             cursor = self.collection.find(query, {"_id": 0})
-            docs = list(cursor)
-            if docs:
-                return docs
-            # If MongoDB collection is empty, seed it
-            for item in self._memory_store.values():
-                self.collection.update_one({"id": item["id"]}, {"$set": item}, upsert=True)
-            return list(self.collection.find(query, {"_id": 0}))
+            return list(cursor)
 
         # In-memory retrieval
         items = list(self._memory_store.values())
@@ -139,9 +133,7 @@ class IncidentRepository(BaseRepository):
 
     def get_by_id(self, incident_id: str) -> Optional[Dict[str, Any]]:
         if self.is_mongo_available:
-            doc = self.collection.find_one({"id": incident_id}, {"_id": 0})
-            if doc:
-                return doc
+            return self.collection.find_one({"id": incident_id}, {"_id": 0})
 
         return self._memory_store.get(incident_id)
 

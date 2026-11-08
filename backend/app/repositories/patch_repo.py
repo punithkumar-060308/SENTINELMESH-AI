@@ -48,17 +48,13 @@ class PatchRepository(BaseRepository):
     def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({"incident_id": incident_id}, {"_id": 0})
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return [p for p in self._memory_store.values() if p.get("incident_id") == incident_id]
 
     def get_by_id(self, patch_id: str) -> Optional[Dict[str, Any]]:
         if self.is_mongo_available:
-            doc = self.collection.find_one({"id": patch_id}, {"_id": 0})
-            if doc:
-                return doc
+            return self.collection.find_one({"id": patch_id}, {"_id": 0})
 
         return self._memory_store.get(patch_id)
 

@@ -60,18 +60,14 @@ class AgentLogRepository(BaseRepository):
     def list_by_incident(self, incident_id: str) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({"incident_id": incident_id}, {"_id": 0}).sort("started_at", 1)
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return [log for log in self._memory_store.values() if log.get("incident_id") == incident_id]
 
     def list_all(self, limit: int = 100) -> List[Dict[str, Any]]:
         if self.is_mongo_available:
             cursor = self.collection.find({}, {"_id": 0}).sort("started_at", -1).limit(limit)
-            docs = list(cursor)
-            if docs:
-                return docs
+            return list(cursor)
 
         return list(self._memory_store.values())[:limit]
 

@@ -55,9 +55,11 @@ export default function App() {
    * Synchronize incidents from live backend or explicit demo store.
    * Never silently falls back to mock data when backend fails.
    */
-  const syncIncidents = useCallback(async () => {
-    setIsLoading(true);
-    setConnectionStatus('checking');
+  const syncIncidents = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setIsLoading(true);
+      setConnectionStatus('checking');
+    }
 
     try {
       // 1. Verify health & connectivity
@@ -88,28 +90,40 @@ export default function App() {
         return null;
       });
     } catch (err) {
-      console.error('[SentinelMesh API Error] Failed to fetch incidents:', {
-        message: err.message,
-        status: err.status,
-        endpoint: err.endpoint,
-        stack: err.stack,
-      });
+      if (!isSilent) {
+        console.error('[SentinelMesh API Error] Failed to fetch incidents:', {
+          message: err.message,
+          status: err.status,
+          endpoint: err.endpoint,
+          stack: err.stack,
+        });
 
-      setConnectionStatus('disconnected');
-      setApiError(err.message || 'Unable to communicate with SentinelMesh backend');
+        setConnectionStatus('disconnected');
+        setApiError(err.message || 'Unable to communicate with SentinelMesh backend');
 
-      if (!api.isDemoMode()) {
-        // Do not silently load mock data in live mode
-        setIncidents([]);
-        setSelectedIncident(null);
+        if (!api.isDemoMode()) {
+          // Do not silently load mock data in live mode
+          setIncidents([]);
+          setSelectedIncident(null);
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    syncIncidents();
+    // Initial fetch
+    syncIncidents(false);
+
+    // Live real-time background polling every 2.5 seconds
+    const interval = setInterval(() => {
+      syncIncidents(true);
+    }, 2500);
+
+    return () => clearInterval(interval);
   }, [syncIncidents]);
 
   const handleToggleDemoMode = () => {
@@ -151,10 +165,12 @@ export default function App() {
   };
 
   const handleApprovePatch = async (incidentId, notes) => {
+    setSelectedIncident((prev) => (prev && prev.id === incidentId ? { ...prev, status: 'recovered' } : prev));
     await syncIncidents();
   };
 
   const handleRejectPatch = async (incidentId) => {
+    setSelectedIncident((prev) => (prev && prev.id === incidentId ? { ...prev, status: 'rejected' } : prev));
     await syncIncidents();
   };
 

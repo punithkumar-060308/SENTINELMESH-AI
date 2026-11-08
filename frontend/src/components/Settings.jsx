@@ -9,6 +9,29 @@ export default function Settings({ showToast }) {
   const [slackAlerts, setSlackAlerts] = useState(true);
   const [pagerdutyAlerts, setPagerdutyAlerts] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(false);
+  const [isPurging, setIsPurging] = useState(false);
+
+  const handlePurgeData = async () => {
+    if (!window.confirm("Are you sure you want to clear all incidents and telemetry data? All dashboard counters will reset to 0.")) {
+      return;
+    }
+    setIsPurging(true);
+    try {
+      await api.purgeAllData();
+      if (showToast) {
+        showToast("All incident and telemetry data cleared successfully. Dashboard reset to 0.", "delete_sweep", "text-rose-600");
+      }
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
+    } catch (err) {
+      if (showToast) {
+        showToast(`Failed to purge data: ${err.message}`, "error", "text-error");
+      }
+    } finally {
+      setIsPurging(false);
+    }
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -327,6 +350,33 @@ export default function Settings({ showToast }) {
                 onChange={(e) => setEmailAlerts(e.target.checked)}
                 className="accent-[#2563EB] w-4 h-4 cursor-pointer"
               />
+            </div>
+          </div>
+
+          {/* Danger Zone: Manual Database & Telemetry Purge */}
+          <div className="bg-rose-50/80 rounded-2xl p-5 border border-rose-200 shadow-xs space-y-3 font-sans">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px] text-rose-600">delete_sweep</span>
+              <span className="font-black text-rose-950 text-xs uppercase tracking-wider block font-sans">
+                Danger Zone · Manual Database Purge
+              </span>
+            </div>
+            <p className="text-xs text-rose-800 leading-relaxed font-sans">
+              Delete all simulated incidents, synthesized patches, sandbox test runs, and audit logs from MongoDB Atlas and local state. Resets all dashboard numbers to zero.
+            </p>
+            <div className="pt-2 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-[11px] font-mono text-rose-700">Database: sentinelmesh_db.*</span>
+              <button
+                type="button"
+                onClick={handlePurgeData}
+                disabled={isPurging}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition-all shadow-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                <span className={`material-symbols-outlined text-[16px] ${isPurging ? 'animate-spin' : ''}`}>
+                  {isPurging ? 'sync' : 'delete_forever'}
+                </span>
+                <span>{isPurging ? 'Purging Database...' : 'Clear All Platform Data'}</span>
+              </button>
             </div>
           </div>
         </div>

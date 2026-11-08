@@ -91,3 +91,9 @@ def verify_incident(
 @router.get("/{incident_id}/report", response_model=IncidentReportResponse, summary="Get final post-incident recovery report")
 def get_incident_report(incident_id: str = Path(..., description="Stable incident identifier")):
     return incident_service.get_report(incident_id)
+
+
+@router.delete("/purge", summary="Purge all incidents and related telemetry")
+def purge_incidents():
+    deleted = incident_service.purge_all_data()
+    return {"success": True, "deleted": deleted}

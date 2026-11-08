@@ -1,20 +1,24 @@
 from datetime import datetime, timezone
 from typing import List, Optional, Any, Dict
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class IncidentBase(BaseModel):
     title: str = Field(..., description="Short descriptive title of the incident")
-    application: str = Field(..., description="Application or service identifier")
+    application: str = Field(default="demo-service", description="Application or service identifier")
+    app: Optional[str] = Field(None, description="App alias for frontend compatibility")
     description: Optional[str] = Field(None, description="Detailed incident description")
     severity: str = Field(default="medium", description="critical | high | medium | low")
     status: str = Field(default="detected", description="detected | investigating | awaiting_approval | approved | applying | verifying | recovered | failed | rejected")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class IncidentCreate(BaseModel):
     id: Optional[str] = Field(None, description="Optional custom ID (e.g. INC-001)")
     title: str
-    application: str
+    application: Optional[str] = None
+    app: Optional[str] = None
     description: Optional[str] = None
     severity: str = "medium"
     status: Optional[str] = "detected"
@@ -26,6 +30,30 @@ class IncidentCreate(BaseModel):
     stack_trace: Optional[str] = Field(None, alias="stackTrace")
     evidence_ids: List[str] = Field(default_factory=list, alias="evidenceIds")
     raw_logs: Optional[str] = None
+    pipeline_agent: Optional[str] = Field(None, alias="pipelineAgent")
+    root_cause: Optional[str] = Field(None, alias="rootCause")
+    source_file: Optional[str] = Field(None, alias="sourceFile")
+    confidence: Optional[float] = None
+    blast_radius: Optional[str] = Field(None, alias="blastRadius")
+    blast_radius_detail: Optional[str] = Field(None, alias="blastRadiusDetail")
+    correlated_pr: Optional[str] = Field(None, alias="correlatedPR")
+    pod_logs: Optional[List[Dict[str, Any]]] = Field(None, alias="podLogs")
+
+    @field_validator("severity", mode="before")
+    @classmethod
+    def normalize_severity(cls, v):
+        if not v:
+            return "medium"
+        v_str = str(v).lower().strip()
+        if v_str in ["p0", "critical", "crit"]:
+            return "critical"
+        if v_str in ["p1", "high"]:
+            return "high"
+        if v_str in ["p2", "medium", "med"]:
+            return "medium"
+        if v_str in ["p3", "low"]:
+            return "low"
+        return v_str
 
     model_config = ConfigDict(populate_by_name=True)
 
