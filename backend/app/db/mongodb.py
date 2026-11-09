@@ -18,7 +18,8 @@ class MongoDBManager:
 
     def connect(self) -> bool:
         """Establish connection to MongoDB Atlas or local instance."""
-        if settings.TESTING or settings.ENVIRONMENT == "testing" or "pytest" in sys.modules:
+        env = (settings.ENVIRONMENT or "").strip().lower()
+        if env != "production" and (settings.TESTING or env in ("testing", "test") or "pytest" in sys.modules):
             logger.info("Test environment detected. Using resilient in-memory repository.")
             self.is_connected = False
             self.db = None
@@ -42,10 +43,31 @@ class MongoDBManager:
         except (ConnectionFailure, ServerSelectionTimeoutError, Exception) as e:
             self.is_connected = False
             self.db = None
+            if (settings.ENVIRONMENT or "").strip().lower() == "production":
+                logger.critical(
+                    "MongoDB Atlas connection/authentication failed in PRODUCTION: %s", str(e)
+                )
+                raise RuntimeError(
+                    f"Production environment requires an active MongoDB Atlas connection. "
+                    f"Failed to connect to MongoDB: {e}"
+                ) from e
+
             logger.warning(
-                "MongoDB not reachable or auth failed (%s). Falling back to resilient in-memory repository.",
+                "MongoDB not reachable or auth failed (%s). Falling back to resilient in-memory repository for non-production environment.",
                 str(e),
             )
+            return False
+
+    def ping(self) -> bool:
+        """Verify active MongoDB responsiveness."""
+        if not self.is_connected or self.client is None:
+            return False
+        try:
+            self.client.admin.command("ping")
+            return True
+        except Exception as e:
+            logger.warning("MongoDB ping check failed: %s", str(e))
+            self.is_connected = False
             return False
 
     def disconnect(self):
@@ -86,6 +108,10 @@ class MongoDBManager:
             self.db.audit_logs.create_index("id", unique=True)
             self.db.audit_logs.create_index("incident_id")
             self.db.audit_logs.create_index("created_at")
+
+            # 7. users indexes
+            self.db.users.create_index("id", unique=True)
+            self.db.users.create_index("email", unique=True)
 
             logger.info("MongoDB indexes verified/created successfully.")
         except Exception as e:

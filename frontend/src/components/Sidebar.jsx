@@ -6,7 +6,10 @@ export default function Sidebar({
   incidentsCount = 3,
   pendingPatchesCount = 1,
   isOpenMobile = false,
-  onCloseMobile
+  onCloseMobile,
+  currentUser = null,
+  onOpenAuth,
+  requireAuth = null,
 }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: 'grid_view' },
@@ -16,10 +19,19 @@ export default function Sidebar({
     { id: 'verification', label: 'Verification', icon: 'check_circle' },
     { id: 'audit-logs', label: 'Audit Logs', icon: 'receipt_long' },
     { id: 'settings', label: 'Settings', icon: 'tune' },
+    { id: 'profile', label: currentUser ? currentUser.name : 'Operator Profile', icon: 'account_circle' },
   ];
 
   const handleNavClick = (id) => {
-    setActiveTab(id);
+    if (id === 'overview') {
+      setActiveTab('overview');
+    } else if (requireAuth) {
+      requireAuth(() => setActiveTab(id));
+    } else if (id === 'profile' && !currentUser) {
+      if (onOpenAuth) onOpenAuth();
+    } else {
+      setActiveTab(id);
+    }
     if (onCloseMobile) onCloseMobile();
   };
 
@@ -69,9 +81,17 @@ export default function Sidebar({
                       : 'text-[#475569] hover:text-[#17233B] hover:bg-white/90 hover:scale-105'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[22px]">
-                    {item.icon}
-                  </span>
+                  {item.id === 'profile' && currentUser?.avatar_url ? (
+                    <img
+                      src={currentUser.avatar_url}
+                      alt={currentUser.name}
+                      className="w-6 h-6 rounded-full object-cover border border-white"
+                    />
+                  ) : (
+                    <span className="material-symbols-outlined text-[22px]">
+                      {item.icon}
+                    </span>
+                  )}
 
                   {/* Badge Counter */}
                   {item.isAgentsBadge ? (

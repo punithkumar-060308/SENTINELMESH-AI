@@ -17,6 +17,15 @@ class BaseRepository:
             return db_manager.db[self.collection_name]
         return None
 
+    def check_production_storage_allowed(self) -> None:
+        """In production, fallback to in-memory storage is strictly prohibited."""
+        from app.core.config import settings
+        if (settings.ENVIRONMENT or "").strip().lower() == "production" and not self.is_mongo_available:
+            raise RuntimeError(
+                f"Production environment requires active MongoDB persistence for '{self.collection_name}'. "
+                "Operating against temporary in-memory storage is strictly disabled in production."
+            )
+
     def purge(self) -> int:
         count = 0
         if self.is_mongo_available and self.collection is not None:

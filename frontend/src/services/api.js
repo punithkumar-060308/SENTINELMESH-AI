@@ -28,6 +28,56 @@ export class ApiError extends Error {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || null;
 
+const TOKEN_KEY = 'sentinelmesh_auth_token';
+const USER_KEY = 'sentinelmesh_auth_user';
+
+export function getAuthToken() {
+  try {
+    return typeof window !== 'undefined' && window.localStorage ? window.localStorage.getItem(TOKEN_KEY) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthToken(token) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (token) {
+        window.localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        window.localStorage.removeItem(TOKEN_KEY);
+      }
+    }
+  } catch {}
+}
+
+export function getStoredUser() {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const raw = window.localStorage.getItem(USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    }
+  } catch {}
+  return null;
+}
+
+export function setStoredUser(user) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (user) {
+        window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+      } else {
+        window.localStorage.removeItem(USER_KEY);
+      }
+    }
+  } catch {}
+}
+
+export function clearAuth() {
+  setAuthToken(null);
+  setStoredUser(null);
+}
+
 // Explicit mock mode flag: only enabled if VITE_USE_DEMO_MOCK is true or API_BASE_URL is not set
 let demoModeOverride = import.meta.env.VITE_USE_DEMO_MOCK === 'true' || !API_BASE_URL;
 
@@ -70,13 +120,17 @@ async function request(endpoint, options = {}) {
   }
 
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
   try {
     const res = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
+      headers,
     });
 
     if (!res.ok) {
@@ -436,6 +490,129 @@ export const api = {
         console.warn('Backend purge warning:', err.message);
       }
     }
+    return { success: true };
+  },
+
+  /**
+   * Auth & User Profile methods
+   */
+  getAuthToken,
+  getStoredUser,
+  isAuthenticated() {
+    return Boolean(getAuthToken());
+  },
+
+  async register({ name, email, password, confirmPassword }) {
+    if (!demoModeOverride && API_BASE_URL) {
+      const data = await request('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          confirm_password: confirmPassword,
+        }),
+      });
+      if (data?.access_token) {
+        setAuthToken(data.access_token);
+        setStoredUser(data.user);
+      }
+      return data;
+    }
+
+    await mockDelay(250);
+    const mockUser = {
+      id: `usr-${Date.now().toString(36)}`,
+      name: name || 'Demo Operator',
+      email: email,
+      avatar_url: null,
+      created_at: new Date().toISOString(),
+    };
+    const mockResp = {
+      access_token: `mock-jwt-token-${Date.now()}`,
+      token_type: 'bearer',
+      user: mockUser,
+    };
+    setAuthToken(mockResp.access_token);
+    setStoredUser(mockUser);
+    return mockResp;
+  },
+
+  async login({ email, password }) {
+    if (!demoModeOverride && API_BASE_URL) {
+      const data = await request('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      if (data?.access_token) {
+        setAuthToken(data.access_token);
+        setStoredUser(data.user);
+      }
+      return data;
+    }
+
+    await mockDelay(250);
+    const mockUser = {
+      id: 'usr-demo-001',
+      name: email.split('@')[0] || 'Demo Operator',
+      email: email,
+      avatar_url: null,
+      created_at: new Date().toISOString(),
+    };
+    const mockResp = {
+      access_token: `mock-jwt-token-${Date.now()}`,
+      token_type: 'bearer',
+      user: mockUser,
+    };
+    setAuthToken(mockResp.access_token);
+    setStoredUser(mockUser);
+    return mockResp;
+  },
+
+  async getProfile() {
+    if (!demoModeOverride && API_BASE_URL) {
+      const user = await request('/api/auth/me');
+      setStoredUser(user);
+      return user;
+    }
+
+    await mockDelay(150);
+    const existing = getStoredUser();
+    if (existing) return existing;
+    throw new ApiError('Not authenticated', 401, '/api/auth/me');
+  },
+
+  async updateProfile({ name, avatar_url }) {
+    if (!demoModeOverride && API_BASE_URL) {
+      const updated = await request('/api/auth/me', {
+        method: 'PUT',
+        body: JSON.stringify({ name, avatar_url }),
+      });
+      setStoredUser(updated);
+      return updated;
+    }
+
+    await mockDelay(200);
+    const existing = getStoredUser() || { email: 'demo@sentinelmesh.ai', created_at: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      name: name !== undefined ? name : existing.name,
+      avatar_url: avatar_url !== undefined ? avatar_url : existing.avatar_url,
+      updated_at: new Date().toISOString(),
+    };
+    setStoredUser(updated);
+    return updated;
+  },
+
+  async logout() {
+    if (!demoModeOverride && API_BASE_URL && getAuthToken()) {
+      try {
+        await request('/api/auth/logout', { method: 'POST' });
+      } catch (err) {
+        console.warn('[SentinelMesh Auth] Logout request warning:', err.message);
+      }
+    }
+    clearAuth();
     return { success: true };
   },
 };
