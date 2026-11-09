@@ -29,6 +29,7 @@ SEED_VERIFICATION_RUNS = [
 class VerificationRepository(BaseRepository):
     def __init__(self):
         super().__init__("verification")
+        self._initial_seeds = SEED_VERIFICATION_RUNS
         self._memory_store: Dict[str, Dict[str, Any]] = {
             item["id"]: dict(item) for item in SEED_VERIFICATION_RUNS
         }

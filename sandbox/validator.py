@@ -80,14 +80,11 @@ class PatchValidator:
         if normalized.startswith("../") or normalized == "..":
             raise PatchValidationError(f"Path traversal detected after normalization: '{target_path}'.")
 
-        # Check against allowlist or safe source file extensions
+        # Enforce strict allowlist check: no extension-based bypass
         if normalized not in self.allowlist:
             matches = [p for p in self.allowlist if p.endswith(normalized) or normalized.endswith(p)]
             if matches:
                 normalized = matches[0]
-            elif any(normalized.endswith(ext) for ext in [".py", ".java", ".ts", ".js", ".sql"]):
-                # Permit safe code files within workspace
-                pass
             else:
                 raise PatchValidationError(
                     f"File '{normalized}' is not in the permitted sandbox allowlist: {sorted(list(self.allowlist))}"

@@ -334,10 +334,11 @@ class SandboxWorkspace:
         os.makedirs(os.path.dirname(full_target_str), exist_ok=True)
 
         # Snapshot check: ensure target file exists in workspace snapshot
+        # Reject missing files fail-closed: do not write artificial stub files.
         if not os.path.exists(full_target_str):
-            os.makedirs(os.path.dirname(full_target_str), exist_ok=True)
-            with open(full_target_str, "w", encoding="utf-8") as init_f:
-                init_f.write("// SentinelMesh workspace snapshot stub\n")
+            raise FileNotFoundError(
+                f"Target file '{target_rel_path}' does not exist in workspace snapshot."
+            )
 
         # Apply patch diff
         applied = self._apply_unified_or_content_patch(full_target_str, diff_text)
