@@ -113,36 +113,23 @@ class SandboxRunner:
         # 1. Check Docker daemon availability
         docker_ok, reason = self.check_docker_engine()
         if not docker_ok:
-            # Resilient isolated workspace sandbox runtime when Docker Desktop is offline
-            container_name = f"sentinelmesh-sandbox-emulated-{uuid.uuid4().hex[:12]}"
-            target_patch_marker = os.path.join(workspace_dir, ".target_patch")
-            is_patched = os.path.exists(target_patch_marker)
-            duration_ms = max(int((time.time() - start_time) * 1000), 420)
-
+            # P0 Fail-Closed: Docker Engine is unavailable. Verification must strictly fail.
+            # Never fabricate container IDs, simulated test passes, or pretend execution was isolated.
+            duration_ms = max(int((time.time() - start_time) * 1000), 0)
             return {
-                "exit_code": 0 if is_patched else 1,
-                "passed": 3 if is_patched else 0,
-                "failed": 0 if is_patched else 1,
+                "exit_code": 1,
+                "passed": 0,
+                "failed": 1,
                 "skipped": 0,
                 "duration_ms": duration_ms,
-                "stdout": (
-                    f"PASSED demo_api/test_service.py::test_get_users_baseline\n"
-                    f"PASSED demo_api/test_service.py::test_get_users_under_load\n"
-                    f"PASSED demo_api/test_service.py::test_regression_invariant_check\n\n"
-                    f"3 passed in {duration_ms/1000:.2f}s (Isolated Disposable Sandbox Runtime)"
-                    if is_patched else "FAILED: No validated patch applied."
-                ),
-                "stderr": "",
+                "stdout": "",
+                "stderr": reason,
                 "timed_out": False,
-                "docker_unavailable": False,
-                "docker_isolated": True,
-                "container_name": container_name,
-                "tests": [
-                    {"name": "test_get_users_baseline", "status": "PASSED" if is_patched else "FAILED", "duration": "0.12s"},
-                    {"name": "test_get_users_under_load", "status": "PASSED" if is_patched else "FAILED", "duration": "0.15s"},
-                    {"name": "test_regression_invariant_check", "status": "PASSED" if is_patched else "FAILED", "duration": "0.15s"},
-                ],
-                "error": None if is_patched else "Verification failed: patch not applied to workspace.",
+                "docker_unavailable": True,
+                "docker_isolated": False,
+                "container_name": None,
+                "tests": [],
+                "error": f"Docker Engine unavailable (fail-closed): {reason}",
             }
 
         # 2. Build unique container identifier

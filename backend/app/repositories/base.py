@@ -29,3 +29,11 @@ class BaseRepository:
             count = max(count, len(self._memory_store))
             self._memory_store.clear()
         return count
+
+    def reset_for_tests(self) -> None:
+        """Reset repository to clean initial seed state specifically for test isolation.
+        Does not affect standard production purge semantics.
+        """
+        self.purge()
+        if hasattr(self, "_initial_seeds"):
+            self._memory_store = {item["id"]: dict(item) for item in self._initial_seeds}

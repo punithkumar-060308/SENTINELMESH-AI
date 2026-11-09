@@ -285,17 +285,20 @@ class VerificationService:
 
         # 5. Result integrity:
         # Require a genuine Docker container ID in addition to the existing success conditions.
+        # Explicitly reject fabricated or emulated container IDs.
         has_valid_container_id = bool(
             sandbox_result.container_id
             and isinstance(sandbox_result.container_id, str)
             and sandbox_result.container_id.strip()
+            and not sandbox_result.container_id.startswith("sentinelmesh-sandbox-emulated")
             and sandbox_result.container_id != sandbox_result.run_id
         )
 
-        # Do not fabricate execution results
+        # Do not fabricate execution results. Fail-closed on Docker unavailability.
         is_success = (
             sandbox_result.status == "passed"
             and sandbox_result.docker_isolated is True
+            and not getattr(sandbox_result, "docker_unavailable", False)
             and has_valid_container_id
             and sandbox_result.exit_code == 0
             and sandbox_result.passed_count > 0

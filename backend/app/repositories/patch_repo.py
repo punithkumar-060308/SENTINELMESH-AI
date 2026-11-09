@@ -41,6 +41,7 @@ SEED_PATCHES = [
 class PatchRepository(BaseRepository):
     def __init__(self):
         super().__init__("patches")
+        self._initial_seeds = SEED_PATCHES
         self._memory_store: Dict[str, Dict[str, Any]] = {
             item["id"]: dict(item) for item in SEED_PATCHES
         }

@@ -64,6 +64,7 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationPassed, setVerificationPassed] = useState(inc.status === 'recovered');
   const [isRejected, setIsRejected] = useState(inc.status === 'rejected');
+  const [isApproved, setIsApproved] = useState(inc.status === 'approved');
   const [isSynthesizingAlternative, setIsSynthesizingAlternative] = useState(false);
   const [activeCandidate, setActiveCandidate] = useState(inc.status === 'rejected' ? 'v2' : 'v1');
   const [rejectionReason, setRejectionReason] = useState('Operator requested alternative mitigation approach');
@@ -71,6 +72,28 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
   const [isEscalatedToSre, setIsEscalatedToSre] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
   const [dialogState, setDialogState] = useState({ isOpen: false, type: null });
+
+  // 1. Reset incident-specific working state ONLY when the selected incident changes (by ID)
+  React.useEffect(() => {
+    setIsVerifying(inc?.status === 'verifying');
+    setVerificationPassed(inc?.status === 'recovered');
+    setIsApproved(inc?.status === 'approved');
+    setIsRejected(inc?.status === 'rejected');
+    setIsSynthesizingAlternative(false);
+    setActiveCandidate(inc?.status === 'rejected' ? 'v2' : 'v1');
+    setRejectionList([]);
+    setIsEscalatedToSre(false);
+    setDialogState({ isOpen: false, type: null });
+  }, [inc?.id]);
+
+  // 2. Synchronize lifecycle status updates from polling WITHOUT resetting open dialogs or working selections
+  React.useEffect(() => {
+    if (!inc?.status) return;
+    setIsVerifying(inc.status === 'verifying');
+    setVerificationPassed(inc.status === 'recovered');
+    setIsApproved(inc.status === 'approved');
+    setIsRejected(inc.status === 'rejected');
+  }, [inc?.status]);
 
   const handleCopy = (text, fieldName) => {
     navigator.clipboard.writeText(text);
@@ -104,17 +127,19 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
           await api.analyzeIncident(inc.id);
         } catch (aErr) {}
         await api.approvePatch(inc.id, notes);
+        setIsApproved(true);
+        if (onApprovePatch) onApprovePatch(inc.id, notes || auditComment);
+
         try {
           await api.runVerification(inc.id);
-        } catch (vErr) {
-          console.warn('[SentinelMesh] Verification trigger note:', vErr.message);
-        }
-        setTimeout(async () => {
           setIsVerifying(false);
           setVerificationPassed(true);
           showToast('Verification passed! All test suites OK with 0 regressions. Recovered.', 'verified', 'text-tertiary');
-          if (onApprovePatch) onApprovePatch(inc.id, notes || auditComment);
-        }, 1500);
+        } catch (vErr) {
+          setIsVerifying(false);
+          console.warn('[SentinelMesh] Verification outcome:', vErr.message);
+          showToast(`Verification: ${vErr.message}`, 'info', 'text-amber-500');
+        }
       } catch (err) {
         setIsVerifying(false);
         showToast(`Approval failed: ${err.message}`, 'error', 'text-error');
@@ -218,10 +243,15 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
               </span>
 
               <span className="px-3 py-1 rounded-full bg-white text-[#17233B] font-bold text-xs border border-[#CBD5E1] shadow-xs flex items-center gap-1.5">
-                {verificationPassed ? (
+                {inc.status === 'recovered' || verificationPassed ? (
                   <span className="text-emerald-700 flex items-center gap-1 font-bold">
                     <span className="material-symbols-outlined text-[16px]">check_circle</span>
                     RECOVERED & CLOSED
+                  </span>
+                ) : inc.status === 'rejected' || isRejected ? (
+                  <span className="text-rose-700 flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-[16px]">cancel</span>
+                    PATCH REJECTED
                   </span>
                 ) : isEscalatedToSre ? (
                   <span className="text-rose-700 flex items-center gap-1.5 font-bold">
@@ -237,6 +267,16 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
                   <span className="text-amber-800 flex items-center gap-1.5 font-bold">
                     <span className="material-symbols-outlined text-[16px] text-amber-600">auto_fix_high</span>
                     ALTERNATIVE CANDIDATE READY ({activeCandidate.toUpperCase()})
+                  </span>
+                ) : inc.status === 'verifying' || isVerifying ? (
+                  <span className="text-blue-700 flex items-center gap-1.5 font-bold">
+                    <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                    VERIFICATION IN PROGRESS
+                  </span>
+                ) : inc.status === 'approved' || isApproved ? (
+                  <span className="text-amber-700 flex items-center gap-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    APPROVED — TRIGGERING SANDBOX
                   </span>
                 ) : (
                   <>
@@ -285,7 +325,7 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             </button>
             <button
               onClick={handleOpenReject}
-              disabled={verificationPassed || isSynthesizingAlternative || isEscalatedToSre}
+              disabled={inc.status === 'recovered' || verificationPassed || inc.status === 'rejected' || isSynthesizingAlternative || isEscalatedToSre}
               className="px-4 py-2.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-xs flex items-center gap-2 border border-rose-200 disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
@@ -297,18 +337,23 @@ export default function IncidentInvestigation({ incident, onBack, onApprovePatch
             </button>
             <button
               onClick={handleOpenApprove}
-              disabled={isVerifying || verificationPassed || isSynthesizingAlternative || isEscalatedToSre}
+              disabled={isVerifying || verificationPassed || inc.status === 'recovered' || inc.status === 'approved' || isApproved || inc.status === 'verifying' || isSynthesizingAlternative || isEscalatedToSre}
               className="px-5 py-2.5 rounded-full bg-[#17233B] hover:bg-[#1e2f4f] text-white font-bold text-xs shadow-md flex items-center gap-2 transition-all active:scale-95 disabled:opacity-75"
             >
-              {isVerifying ? (
+              {isVerifying || inc.status === 'verifying' ? (
                 <>
                   <span className="material-symbols-outlined text-[18px] animate-spin">sync</span>
                   <span>Verifying in Sandbox...</span>
                 </>
-              ) : verificationPassed ? (
+              ) : inc.status === 'recovered' || verificationPassed ? (
                 <>
                   <span className="material-symbols-outlined text-[18px] text-emerald-400">task_alt</span>
                   <span>Patch Verified & Deployed</span>
+                </>
+              ) : inc.status === 'approved' || isApproved ? (
+                <>
+                  <span className="material-symbols-outlined text-[18px] text-amber-400">hourglass_top</span>
+                  <span>Approved & Triggering Sandbox...</span>
                 </>
               ) : rejectionList.length > 0 ? (
                 <>

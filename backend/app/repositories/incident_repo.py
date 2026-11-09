@@ -109,6 +109,7 @@ SEED_INCIDENTS = [
 class IncidentRepository(BaseRepository):
     def __init__(self):
         super().__init__("incidents")
+        self._initial_seeds = SEED_INCIDENTS
         self._memory_store: Dict[str, Dict[str, Any]] = {
             item["id"]: dict(item) for item in SEED_INCIDENTS
         }
