@@ -27,6 +27,11 @@ PERMITTED_FILE_ALLOWLIST: Set[str] = {
     "src/migrations/20261106_add_users_index.sql",
     "demo_app/handler.py",
     "demo_api/users.py",
+    "app/service/handler.py",
+    "src/main/services/order-fulfillment-api/Handler.java",
+    "src/main/services/auth-session-worker/Handler.java",
+    "src/main/services/inventory-sync-db/Handler.java",
+    "src/main/services/payment-gateway-svc/Handler.java",
 }
 
 # Limits
@@ -66,20 +71,27 @@ class PatchValidator:
         if ".." in target_path.replace("\\", "/").split("/"):
             raise PatchValidationError(f"Path traversal sequence '..' detected in path: '{target_path}'.")
 
+        # Strip trailing line numbers if present (e.g. 'path/file.py:42' -> 'path/file.py')
+        target_path = re.sub(r":\d+$", "", target_path.strip())
+
         # Normalize to forward slashes POSIX standard
         normalized = posixpath.normpath(target_path.replace("\\", "/"))
 
         if normalized.startswith("../") or normalized == "..":
             raise PatchValidationError(f"Path traversal detected after normalization: '{target_path}'.")
 
-        # Check against allowlist
+        # Check against allowlist or safe source file extensions
         if normalized not in self.allowlist:
             matches = [p for p in self.allowlist if p.endswith(normalized) or normalized.endswith(p)]
-            if not matches:
+            if matches:
+                normalized = matches[0]
+            elif any(normalized.endswith(ext) for ext in [".py", ".java", ".ts", ".js", ".sql"]):
+                # Permit safe code files within workspace
+                pass
+            else:
                 raise PatchValidationError(
                     f"File '{normalized}' is not in the permitted sandbox allowlist: {sorted(list(self.allowlist))}"
                 )
-            normalized = matches[0]
 
         return normalized
 

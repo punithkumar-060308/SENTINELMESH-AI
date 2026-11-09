@@ -265,18 +265,29 @@ class IncidentService:
         )
 
     def purge_all_data(self) -> int:
+        from app.repositories import (
+            incident_repo,
+            evidence_repo,
+            patch_repo,
+            verification_repo,
+            agent_log_repo,
+            audit_repo,
+        )
         total = 0
-        repos = [self.incident_repo, self.evidence_repo, self.patch_repo, self.verification_repo]
+        repos = [
+            incident_repo,
+            evidence_repo,
+            patch_repo,
+            verification_repo,
+            agent_log_repo,
+            audit_repo,
+        ]
         for r in repos:
-            if hasattr(r, '_get_collection'):
+            if hasattr(r, 'purge'):
                 try:
-                    res = r._get_collection().delete_many({})
-                    total += res.deleted_count
+                    total += r.purge()
                 except Exception:
                     pass
-            elif hasattr(r, '_items'):
-                total += len(r._items)
-                r._items.clear()
         return total
 
 

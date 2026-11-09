@@ -429,9 +429,9 @@ export const api = {
     incidentsStore = [];
     verificationRunsStore = [];
     auditLogStore = [];
-    if (!demoModeOverride && API_BASE_URL) {
+    if (API_BASE_URL) {
       try {
-        return await request('/api/incidents/purge', { method: 'DELETE' });
+        await request('/api/incidents/purge', { method: 'DELETE' });
       } catch (err) {
         console.warn('Backend purge warning:', err.message);
       }

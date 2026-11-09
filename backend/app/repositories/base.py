@@ -16,3 +16,16 @@ class BaseRepository:
         if self.is_mongo_available:
             return db_manager.db[self.collection_name]
         return None
+
+    def purge(self) -> int:
+        count = 0
+        if self.is_mongo_available and self.collection is not None:
+            try:
+                res = self.collection.delete_many({})
+                count = res.deleted_count
+            except Exception:
+                pass
+        if hasattr(self, "_memory_store"):
+            count = max(count, len(self._memory_store))
+            self._memory_store.clear()
+        return count

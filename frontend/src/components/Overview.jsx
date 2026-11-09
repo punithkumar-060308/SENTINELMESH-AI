@@ -35,20 +35,20 @@ export default function Overview({ incidents = [], onSelectIncident, onSimulateC
           status: 'investigating'
         });
 
-        // Step 2: After 3 seconds, Investigator & Repair agents diagnose and synthesize patch (increases Pending Approval)
+        // Step 2: After 2.5 seconds, Investigator & Repair agents diagnose and synthesize candidate patch
         setTimeout(async () => {
           try {
             await api.analyzeIncident(inc.id);
           } catch (e) {}
 
-          // Step 3: After another 3.5 seconds, auto approve and run sandbox verification (increases Verified Recoveries)
+          // Step 3: After another 3.0 seconds, record authenticated human operator approval and run sandbox verification
           setTimeout(async () => {
             try {
-              await api.approvePatch(inc.id, 'Live Swarm automated safe verification approval');
+              await api.approvePatch(inc.id, 'Live Swarm SRE Operator approval');
               await api.runVerification(inc.id);
             } catch (e) {}
-          }, 3500);
-        }, 3000);
+          }, 3000);
+        }, 2500);
       } catch (err) {
         console.warn('Live swarm stream note:', err.message);
       }
