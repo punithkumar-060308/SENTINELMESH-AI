@@ -7,6 +7,8 @@ export default function Header({
   searchQuery = '',
   onOpenMobileMenu,
   onOpenAuth,
+  onOpenProfile,
+  currentUser = null,
   connectionStatus = 'connected',
   isDemoMode = false,
   onRetryConnection,
@@ -16,6 +18,13 @@ export default function Header({
   const [agentLogs, setAgentLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState(null);
+
+  const getInitials = (name) => {
+    if (!name) return 'OP';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.slice(0, 2).toUpperCase();
+  };
 
   const fetchAgentLogs = useCallback(async () => {
     setLogsLoading(true);
@@ -251,15 +260,23 @@ export default function Header({
 
         {/* User Profile Avatar */}
         <button
-          onClick={onOpenAuth}
-          className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/90 hover:bg-white border border-white transition-all shadow-xs group"
-          title="Operator Profile"
+          onClick={currentUser ? onOpenProfile : onOpenAuth}
+          className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/90 hover:bg-white border border-white transition-all shadow-xs group cursor-pointer"
+          title={currentUser ? `Operator: ${currentUser.name} (Click for Profile)` : "Sign In to SentinelMesh"}
         >
-          <div className="w-7 h-7 rounded-full bg-[#17233B] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
-            EV
-          </div>
+          {currentUser?.avatar_url ? (
+            <img
+              src={currentUser.avatar_url}
+              alt={currentUser.name}
+              className="w-7 h-7 rounded-full object-cover border border-white shadow-xs"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-[#17233B] text-white text-[11px] font-bold flex items-center justify-center shadow-xs">
+              {currentUser ? getInitials(currentUser.name) : 'OP'}
+            </div>
+          )}
           <span className="text-xs font-bold text-[#17233B] hidden md:inline">
-            Elena Vance
+            {currentUser?.name || 'Sign In'}
           </span>
         </button>
       </div>

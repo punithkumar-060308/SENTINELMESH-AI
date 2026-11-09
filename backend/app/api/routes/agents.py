@@ -1,5 +1,6 @@
 from typing import List, Optional
-from fastapi import APIRouter, Query, Path, HTTPException
+from fastapi import APIRouter, Query, Path, HTTPException, Depends
+from app.dependencies.auth import require_authenticated_operator
 from app.schemas.agent import FleetAgent, AgentLogEntry
 from app.services import agent_service
 
@@ -30,5 +31,6 @@ def list_agent_logs(
     incident_id: Optional[str] = Query(None, description="Filter by incident ID"),
     status: Optional[str] = Query(None, description="Filter by execution status (completed, running, failed, idle)"),
     limit: int = Query(100, ge=1, le=500, description="Max logs to return"),
+    operator: dict = Depends(require_authenticated_operator),
 ):
     return agent_service.list_all_agent_logs(agent_name=agent_name, incident_id=incident_id, status=status, limit=limit)

@@ -15,6 +15,7 @@ from app.api.routes import (
     agents_router,
     verification_router,
     audit_router,
+    auth_router,
 )
 
 # Logging configuration
@@ -52,12 +53,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS for local frontend development
+# Configure CORS
+cors_origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
+if (settings.ENVIRONMENT or "").strip().lower() == "production":
+    # Strictly filter out wildcard '*' and local development hosts in production
+    cors_origins = [
+        o for o in cors_origins
+        if o != "*" and not o.startswith("http://localhost") and not o.startswith("http://127.0.0.1")
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -95,6 +104,7 @@ app.include_router(patches_router)
 app.include_router(agents_router)
 app.include_router(verification_router)
 app.include_router(audit_router)
+app.include_router(auth_router)
 
 # Mount canonical demo service under /demo for unified hackathon evaluation
 try:

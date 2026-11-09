@@ -9,6 +9,7 @@ import PatchReview from './components/PatchReview';
 import VerificationView from './components/VerificationView';
 import AuditLogs from './components/AuditLogs';
 import Settings from './components/Settings';
+import UserProfile from './components/UserProfile';
 import SimulateIncidentModal from './components/SimulateIncidentModal';
 import AuthModal from './components/AuthModal';
 import { initialIncidents, fleetAgents as defaultFleetAgents } from './data/mockData';
@@ -28,8 +29,23 @@ export default function App() {
 
   const [isSimulateOpen, setIsSimulateOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => api.getStoredUser());
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Check and refresh authenticated session on mount
+  useEffect(() => {
+    if (api.getAuthToken()) {
+      api.getProfile()
+        .then((user) => setCurrentUser(user))
+        .catch((err) => {
+          console.warn('[SentinelMesh App] Session check:', err.message);
+          if (err.status === 401) {
+            setCurrentUser(null);
+          }
+        });
+    }
+  }, []);
 
   // Toast notification state
   const [toast, setToast] = useState({
@@ -174,6 +190,87 @@ export default function App() {
     await syncIncidents();
   };
 
+  const [pendingAction, setPendingAction] = useState(null);
+
+  /**
+   * Reusable Authentication Guard:
+   * If user is authenticated, executes action immediately.
+   * If user is unauthenticated, stores intended action in pendingAction,
+   * displays a friendly notice, and opens AuthModal without loops or redundant popups.
+   */
+  const requireAuth = useCallback((action, options = {}) => {
+    if (currentUser) {
+      if (typeof action === 'function') action();
+      return true;
+    }
+
+    if (typeof action === 'function') {
+      setPendingAction(() => action);
+    }
+
+    if (options.message) {
+      showToast(options.message, 'lock', 'text-amber-500');
+    }
+
+    if (!isAuthOpen) {
+      setIsAuthOpen(true);
+    }
+    return false;
+  }, [currentUser, isAuthOpen]);
+
+  const handleLoginSuccess = (user) => {
+    setCurrentUser(user);
+    setIsAuthOpen(false);
+
+    if (pendingAction) {
+      const actionToRun = pendingAction;
+      setPendingAction(null);
+      try {
+        actionToRun();
+      } catch (err) {
+        console.warn('[SentinelMesh AuthGuard] Error replaying action:', err);
+      }
+    } else if (activeTab !== 'profile') {
+      setActiveTab('overview');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+    } catch (err) {
+      console.warn('[SentinelMesh App] Logout error:', err);
+    }
+    setCurrentUser(null);
+    showToast('Logged out of SentinelMesh.', 'logout', 'text-deep-navy');
+    if (activeTab === 'profile') {
+      setActiveTab('overview');
+    }
+  };
+
+  const renderProtectedTab = (tabName, component) => {
+    if (currentUser) {
+      return component;
+    }
+    return (
+      <div className="glass-panel rounded-3xl p-8 max-w-md mx-auto text-center space-y-4 my-12 border border-white/80 shadow-glass animate-in fade-in duration-200">
+        <div className="w-16 h-16 rounded-2xl bg-powder-blue/30 text-deep-navy mx-auto flex items-center justify-center">
+          <span className="material-symbols-outlined text-[32px]">shield_person</span>
+        </div>
+        <h2 className="text-xl font-bold text-deep-navy">Operator Authentication Required</h2>
+        <p className="text-xs text-muted-slate">
+          Access to {tabName} is restricted to verified SentinelMesh SRE operators.
+        </p>
+        <button
+          onClick={() => requireAuth(() => setActiveTab(activeTab))}
+          className="px-6 py-2.5 bg-deep-navy text-white text-xs font-bold rounded-xl shadow-md hover:bg-deep-navy/90 transition-all cursor-pointer"
+        >
+          Sign In to Continue
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen mesh-canvas text-deep-navy flex flex-col relative font-sans">
       {/* Floating Vertical Navigation Rail */}
@@ -183,20 +280,25 @@ export default function App() {
         incidentsCount={incidents.filter((i) => i.status !== 'recovered').length}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        requireAuth={requireAuth}
       />
 
       {/* Main Content Area */}
       <div className="lg:pl-28 flex-1 flex flex-col min-w-0">
         {/* Floating Horizontal Header */}
         <Header
-          onSimulateClick={() => setIsSimulateOpen(true)}
+          onSimulateClick={() => requireAuth(() => setIsSimulateOpen(true))}
           onSearch={(query) => {
             setSearchQuery(query);
-            if (activeTab !== 'incidents') setActiveTab('incidents');
+            requireAuth(() => setActiveTab('incidents'));
           }}
           searchQuery={searchQuery}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenProfile={() => requireAuth(() => setActiveTab('profile'))}
+          currentUser={currentUser}
           connectionStatus={connectionStatus}
           isDemoMode={isDemoMode}
           onRetryConnection={syncIncidents}
@@ -240,36 +342,60 @@ export default function App() {
           ) : (
             <>
               {activeTab === 'overview' && (
-                <Overview
-                  incidents={incidents}
-                  fleetAgents={fleetAgents}
-                  onSelectIncident={handleSelectIncident}
-                  onSimulateClick={() => setIsSimulateOpen(true)}
-                  onNavigateTab={(tab) => setActiveTab(tab)}
-                  isDemoMode={isDemoMode}
-                />
+                <>
+                  {!currentUser && (
+                    <div className="mb-6 p-4 rounded-2xl bg-powder-blue/20 border border-powder-blue/60 text-deep-navy flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2.5">
+                        <span className="material-symbols-outlined text-deep-navy text-[22px]">lock_open</span>
+                        <div>
+                          <p className="text-xs font-bold text-deep-navy">Visitor Mode — Public Telemetry Overview</p>
+                          <p className="text-[11px] text-muted-slate mt-0.5">
+                            Sign in or create an operator account to approve patches, run Docker verification, or inject simulated incidents.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => requireAuth(() => setActiveTab('overview'))}
+                        className="px-4 py-2 rounded-xl bg-deep-navy text-white text-xs font-bold shadow-sm hover:bg-deep-navy/90 transition-all cursor-pointer shrink-0"
+                      >
+                        Sign In / Register
+                      </button>
+                    </div>
+                  )}
+                  <Overview
+                    incidents={incidents}
+                    fleetAgents={fleetAgents}
+                    onSelectIncident={(inc) => requireAuth(() => handleSelectIncident(inc))}
+                    onSimulateClick={() => requireAuth(() => setIsSimulateOpen(true))}
+                    onNavigateTab={(tab) => tab === 'overview' ? setActiveTab('overview') : requireAuth(() => setActiveTab(tab))}
+                    isDemoMode={isDemoMode}
+                  />
+                </>
               )}
 
-              {activeTab === 'incidents' && (
+              {activeTab === 'incidents' && renderProtectedTab(
+                'Incidents Console',
                 <IncidentsConsole
                   incidents={incidents}
-                  onSelectIncident={handleSelectIncident}
-                  onSimulateClick={() => setIsSimulateOpen(true)}
+                  onSelectIncident={(inc) => requireAuth(() => handleSelectIncident(inc))}
+                  onSimulateClick={() => requireAuth(() => setIsSimulateOpen(true))}
                   isDemoMode={isDemoMode}
                 />
               )}
 
-              {activeTab === 'investigation' && (
+              {activeTab === 'investigation' && renderProtectedTab(
+                'Incident Investigation',
                 <IncidentInvestigation
                   incident={selectedIncident}
                   onBack={() => setActiveTab('incidents')}
-                  onApprovePatch={handleApprovePatch}
-                  onRejectPatch={handleRejectPatch}
+                  onApprovePatch={(incidentId, notes) => requireAuth(() => handleApprovePatch(incidentId, notes))}
+                  onRejectPatch={(incidentId) => requireAuth(() => handleRejectPatch(incidentId))}
                   showToast={showToast}
                 />
               )}
 
-              {activeTab === 'agents' && (
+              {activeTab === 'agents' && renderProtectedTab(
+                'AI Agents Fleet',
                 <AIAgentsFleet
                   showToast={showToast}
                   fleetAgents={fleetAgents}
@@ -277,29 +403,46 @@ export default function App() {
                 />
               )}
 
-              {activeTab === 'patch-review' && (
+              {activeTab === 'patch-review' && renderProtectedTab(
+                'Patch Review & Human Gate',
                 <PatchReview
                   incidents={incidents}
-                  onSelectIncident={handleSelectIncident}
+                  onSelectIncident={(inc) => requireAuth(() => handleSelectIncident(inc))}
                   showToast={showToast}
                   onRefresh={syncIncidents}
                   isDemoMode={isDemoMode}
                 />
               )}
 
-              {activeTab === 'verification' && (
+              {activeTab === 'verification' && renderProtectedTab(
+                'Docker Sandbox Verification',
                 <VerificationView showToast={showToast} incidents={incidents} />
               )}
 
-              {activeTab === 'audit-logs' && <AuditLogs showToast={showToast} />}
+              {activeTab === 'audit-logs' && renderProtectedTab(
+                'Immutable Audit Logs',
+                <AuditLogs showToast={showToast} />
+              )}
 
-              {activeTab === 'settings' && (
+              {activeTab === 'settings' && renderProtectedTab(
+                'Platform Settings',
                 <Settings
                   showToast={showToast}
-                  onResetData={() => {
+                  onResetData={() => requireAuth(() => {
                     setIncidents([]);
                     setSelectedIncident(null);
-                  }}
+                  })}
+                />
+              )}
+
+              {activeTab === 'profile' && renderProtectedTab(
+                'Operator Profile',
+                <UserProfile
+                  currentUser={currentUser}
+                  onUpdateUser={setCurrentUser}
+                  onLogout={handleLogout}
+                  showToast={showToast}
+                  onNavigateTab={setActiveTab}
                 />
               )}
             </>
@@ -327,7 +470,12 @@ export default function App() {
       />
 
       {/* Login & Registration Modal */}
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} showToast={showToast} />
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        showToast={showToast}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
