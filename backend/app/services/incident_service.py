@@ -116,8 +116,8 @@ class IncidentService:
 
         # If incident doesn't have a proposed patch yet, generate one
         proposed_patch = incident.get("proposed_patch")
-        if not proposed_patch:
-            patch_id = f"PAT-{incident_id.replace('INC-', '')}"
+        if not proposed_patch or not isinstance(proposed_patch, dict) or not proposed_patch.get("id") or not proposed_patch.get("diff"):
+            patch_id = (proposed_patch.get("id") if isinstance(proposed_patch, dict) and proposed_patch.get("id") else None) or f"PAT-{incident_id.replace('INC-', '')}"
             app_name = str(incident.get("application", "")).lower()
             inc_title = str(incident.get("title", "")).lower()
             inc_src = str(incident.get("source_file", "") or incident.get("location", "")).lower()
@@ -191,9 +191,10 @@ class IncidentService:
                 "patched_lines": proposed_patch["patchedLines"],
             })
 
+        patch_id_str = proposed_patch.get("id") if isinstance(proposed_patch, dict) else f"PAT-{incident_id.replace('INC-', '')}"
         timeline.append({
             "agent": "Repair",
-            "action": f"Synthesized defensive patch {proposed_patch['id']} (awaiting human sign-off)",
+            "action": f"Synthesized defensive patch {patch_id_str} (awaiting human sign-off)",
             "timestamp": now_time,
             "status": "completed",
         })
@@ -201,7 +202,7 @@ class IncidentService:
         # Update incident state to awaiting_approval
         updated = self.incident_repo.update(incident_id, {
             "status": "awaiting_approval",
-            "pipeline_agent": f"Repair Agent (Patch {proposed_patch['id']} ready for sign-off)",
+            "pipeline_agent": f"Repair Agent (Patch {patch_id_str} ready for sign-off)",
             "active_step": 4,
             "root_cause": root_cause,
             "confidence": incident.get("confidence") or 94.5,

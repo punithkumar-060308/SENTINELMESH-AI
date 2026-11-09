@@ -57,8 +57,18 @@ class PatchService:
             patches = self.patch_repo.list_by_incident(incident_id)
             if patches:
                 target_patch = patches[0]
-            elif incident.get("proposed_patch"):
+            elif incident.get("proposed_patch") and incident.get("proposed_patch").get("diff"):
                 target_patch = incident["proposed_patch"]
+            else:
+                # Ensure candidate patch is synthesized if missing
+                try:
+                    from app.services.incident_service import incident_service
+                    incident_service.analyze_incident(incident_id)
+                    patches = self.patch_repo.list_by_incident(incident_id)
+                    if patches:
+                        target_patch = patches[0]
+                except Exception:
+                    pass
 
         target_patch_id = target_patch.get("id") if target_patch else f"PAT-{incident_id.replace('INC-', '')}"
         now_iso = datetime.now(timezone.utc).isoformat()
