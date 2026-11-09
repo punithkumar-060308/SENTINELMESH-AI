@@ -293,7 +293,15 @@ export default function App() {
 
               {activeTab === 'audit-logs' && <AuditLogs showToast={showToast} />}
 
-              {activeTab === 'settings' && <Settings showToast={showToast} />}
+              {activeTab === 'settings' && (
+                <Settings
+                  showToast={showToast}
+                  onResetData={() => {
+                    setIncidents([]);
+                    setSelectedIncident(null);
+                  }}
+                />
+              )}
             </>
           )}
         </main>

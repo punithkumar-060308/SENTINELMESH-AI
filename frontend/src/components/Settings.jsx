@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { DemoBadge, LoadingState } from './common/UIStates';
 
-export default function Settings({ showToast }) {
+export default function Settings({ showToast, onResetData }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [autoP2Healing, setAutoP2Healing] = useState(true);
@@ -18,12 +18,15 @@ export default function Settings({ showToast }) {
     setIsPurging(true);
     try {
       await api.purgeAllData();
+      if (onResetData) {
+        onResetData();
+      }
       if (showToast) {
         showToast("All incident and telemetry data cleared successfully. Dashboard reset to 0.", "delete_sweep", "text-rose-600");
       }
       setTimeout(() => {
         window.location.reload();
-      }, 700);
+      }, 500);
     } catch (err) {
       if (showToast) {
         showToast(`Failed to purge data: ${err.message}`, "error", "text-error");
