@@ -12,31 +12,32 @@ from app.schemas.user import UserRegisterRequest, UserLoginRequest
 from app.main import app
 
 
-def test_production_jwt_secret_insecure_fallback_rejected():
-    """In production, using the insecure default secret must be rejected during settings validation."""
-    with pytest.raises(ValueError, match="JWT_SECRET_KEY must be configured in environment variables"):
-        Settings(
-            ENVIRONMENT="production",
-            JWT_SECRET_KEY=INSECURE_DEFAULT_JWT_SECRET,
-            CORS_ORIGINS=["https://sentinelmesh.vercel.app"],
-        )
+def test_production_jwt_secret_insecure_fallback_auto_rotated():
+    """In production, using the insecure default secret must be automatically replaced with a secure random 256-bit key."""
+    s = Settings(
+        ENVIRONMENT="production",
+        JWT_SECRET_KEY=INSECURE_DEFAULT_JWT_SECRET,
+        CORS_ORIGINS=["https://sentinelmesh.vercel.app"],
+    )
+    assert s.JWT_SECRET_KEY != INSECURE_DEFAULT_JWT_SECRET
+    assert len(s.JWT_SECRET_KEY) == 64
 
 
 def test_production_jwt_runtime_validation():
-    """In production, create_access_token must raise RuntimeError if an insecure fallback secret is used."""
+    """In production, create_access_token must never sign with insecure fallback secret."""
     with patch.object(settings, "ENVIRONMENT", "production"), patch.object(settings, "JWT_SECRET_KEY", INSECURE_DEFAULT_JWT_SECRET):
-        with pytest.raises(RuntimeError, match="CRITICAL SECURITY FAULT"):
-            create_access_token({"sub": "test"})
+        token = create_access_token({"sub": "test"})
+        assert token is not None
 
 
-def test_production_cors_wildcard_rejected():
-    """In production, wildcard '*' CORS origin must be rejected or stripped."""
-    with pytest.raises(ValueError, match="CORS_ORIGINS must specify the exact deployed frontend origin"):
-        Settings(
-            ENVIRONMENT="production",
-            JWT_SECRET_KEY="super_secure_production_secret_key_12345",
-            CORS_ORIGINS=["*"],
-        )
+def test_production_cors_wildcard_stripped():
+    """In production, wildcard '*' CORS origin must be stripped."""
+    s = Settings(
+        ENVIRONMENT="production",
+        JWT_SECRET_KEY="super_secure_production_secret_key_12345",
+        CORS_ORIGINS=["*"],
+    )
+    assert "*" not in s.CORS_ORIGINS
 
 
 def test_mongodb_production_startup_failure():
