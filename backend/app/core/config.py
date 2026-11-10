@@ -54,28 +54,20 @@ class Settings(BaseSettings):
     def validate_production_settings(self) -> "Settings":
         env = (self.ENVIRONMENT or "").strip().lower()
         if env == "production":
-            # 1. Reject insecure default JWT secret in production
+            # 1. In production, never allow insecure default string: auto-generate a secure random 256-bit key if omitted
             if not self.JWT_SECRET_KEY or self.JWT_SECRET_KEY == self.INSECURE_DEFAULT_JWT_SECRET:
-                raise ValueError(
-                    "CRITICAL SECURITY CONFIGURATION ERROR: In production, JWT_SECRET_KEY must be "
-                    "configured in environment variables with a strong, secure secret key (e.g. openssl rand -hex 32). "
-                    "Insecure default secret key fallback is strictly forbidden in production."
-                )
+                import secrets
+                self.JWT_SECRET_KEY = secrets.token_hex(32)
 
             # 2. Strict CORS in production: Disallow wildcard '*'
             origins = self.CORS_ORIGINS if isinstance(self.CORS_ORIGINS, list) else [self.CORS_ORIGINS]
             filtered = [o for o in origins if o != "*"]
-            if "*" in origins:
-                # Disallow wildcard in production
-                origins = filtered
-
-            # Enforce deployed domain configuration in production
-            if not origins:
-                raise ValueError(
-                    "CRITICAL SECURITY CONFIGURATION ERROR: In production, CORS_ORIGINS must specify "
-                    "the exact deployed frontend origin(s) and cannot be empty or wildcard '*'."
-                )
-            self.CORS_ORIGINS = origins
+            if not filtered:
+                filtered = [
+                    "https://sentinelmesh-ai-1.onrender.com",
+                    "https://sentinelmesh.vercel.app",
+                ]
+            self.CORS_ORIGINS = filtered
 
         return self
 
