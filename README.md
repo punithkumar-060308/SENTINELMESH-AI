@@ -730,11 +730,11 @@ License selection is currently pending official open-source distribution. All ri
 **Track:** Open Innovation  
 
 ### Team Members:
-* **Punith Kumar B S**
-* **Preetam K Shettar**
-* **Rudramma S T**
-* **Poornesh K**
-* **Nityashree H L**
+* **Punith Kumar B S.**
+* **Preetam K Shettar.**
+* **Rudramma S T.**
+* **Poornesh K.**
+* **Nityashree H L.**
 
 ---
 
